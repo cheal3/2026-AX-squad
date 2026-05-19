@@ -1,0 +1,12 @@
+@import './fonts.css';
+@import './tailwind.css';
+@import './theme.css';
+
+.flow-canvas-viewport {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.flow-canvas-viewport::-webkit-scrollbar {
+  display: none;
+}
