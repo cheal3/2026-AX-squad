@@ -57,6 +57,9 @@ export default function App() {
 
   const isRecording = trace.status === "recording";
   const visibleTraceStatus: TraceStatus = trace.status;
+  const runtimeLabelIncludesChromium =
+    runtimeInfo.runtimeLabel?.toLowerCase().includes("chromium") ||
+    (runtimeInfo.chromiumVersion ? runtimeInfo.runtimeLabel?.includes(runtimeInfo.chromiumVersion) : false);
 
   useEffect(() => {
     const runtime = (window as any).debugAgentRuntime;
@@ -481,8 +484,11 @@ export default function App() {
                       : runtimeInfo.platform
                   }
                 >
-                  {runtimeInfo.runtimeLabel ? `${runtimeInfo.runtimeLabel} · ` : ""}
-                  Chromium {runtimeInfo.chromiumVersion}
+                  {runtimeInfo.runtimeLabel
+                    ? runtimeLabelIncludesChromium
+                      ? runtimeInfo.runtimeLabel
+                      : `${runtimeInfo.runtimeLabel} · Chromium ${runtimeInfo.chromiumVersion}`
+                    : `Chromium ${runtimeInfo.chromiumVersion}`}
                 </span>
               )}
             </div>

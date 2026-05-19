@@ -44,6 +44,16 @@ Electron 환경에서 실제 사이트 테스트:
 npm run electron:dev
 ```
 
+실행하면 터미널에서 디버깅 브라우저 런타임을 선택합니다. 숫자를 입력하지 않고
+방향키 `↑` / `↓`로 이동한 뒤 Enter로 선택합니다. 현재 선택된 항목은 글자색으로
+강조됩니다.
+
+선택 목록에는 Electron 버전과 해당 Electron에 포함된 Chromium 버전이 함께 표시됩니다.
+현재 제공하는 관리형 후보는 Electron 42/41/40/39/38이며, 각각 Chromium
+148/146/144/142/140 계열을 사용합니다. 프로젝트에 이미 설치된 Electron 버전은 중복
+항목 없이 해당 후보에서 바로 재사용하고, 로컬에 없는 버전은 다운로드 여부를 한 번 더
+물어본 뒤 승인 시 `.debug-browser-runtimes/`에 설치해 실행합니다.
+
 무료 로컬 AI 분석을 사용하려면 Ollama를 설치한 뒤 모델을 받아 실행합니다.
 
 ```bash
@@ -633,6 +643,13 @@ Flow 도식 가시성 및 네트워크 필터 개선:
   프롬프트를 추가했습니다. 기본값은 현재 프로젝트 Electron이며,
   `DEBUG_BROWSER_ELECTRON_BIN=/path/to/electron npm run electron:dev` 또는
   `browser-runtimes.json` 등록을 통해 다른 Electron 실행 파일을 선택할 수 있습니다.
+- 런타임 선택 프롬프트를 방향키 기반 메뉴로 개선하고, Electron 버전과 Chromium 버전을
+  함께 표시하도록 보강했습니다.
+- Electron 42/41/40/39/38 관리형 후보를 추가하고, 선택한 버전이 로컬에 없으면 승인 후
+  `.debug-browser-runtimes/`에 다운로드/설치해 실행하도록 구성했습니다.
+- 현재 프로젝트 Electron과 관리형 Electron 42가 중복 표시되지 않도록 메뉴를 정리하고,
+  직접 경로 입력 항목을 제거했습니다.
+- 앱 상단 런타임 배지에서 Chromium 버전이 중복 표시되지 않도록 수정했습니다.
 - `npm run build`로 검증했습니다.
 
 대상 서비스 코드에서 함수 Flow를 기록하는 예시:

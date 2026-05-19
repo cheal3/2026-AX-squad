@@ -1,4 +1,4 @@
-const { spawn } = require("child_process");
+const { spawn, spawnSync } = require("child_process");
 const fs = require("fs");
 const net = require("net");
 const path = require("path");
@@ -8,6 +8,43 @@ const electronPath = require("electron");
 const rootDir = path.resolve(__dirname, "..");
 const host = "127.0.0.1";
 const preferredPort = 5173;
+const managedRuntimeDir = path.join(rootDir, ".debug-browser-runtimes");
+
+const electronChromiumMap = {
+  "42.0.0": "148.0.7778.96",
+  "41.0.0": "146.0.7680.65",
+  "40.0.0": "144.0.7559.60",
+  "39.0.0": "142.0.7444.52",
+  "38.0.0": "140.0.7339.41",
+};
+
+const managedElectronOptions = [
+  {
+    id: "electron-42",
+    electronVersion: "42.0.0",
+    description: "최신 계열 테스트용",
+  },
+  {
+    id: "electron-41",
+    electronVersion: "41.0.0",
+    description: "직전 계열 호환성 확인",
+  },
+  {
+    id: "electron-40",
+    electronVersion: "40.0.0",
+    description: "중간 버전 재현용",
+  },
+  {
+    id: "electron-39",
+    electronVersion: "39.0.0",
+    description: "구버전 문의 재현용",
+  },
+  {
+    id: "electron-38",
+    electronVersion: "38.0.0",
+    description: "더 낮은 Chromium 계열 확인",
+  },
+];
 
 function run(command, args, options = {}) {
   return spawn(command, args, {
@@ -57,24 +94,136 @@ function waitForPort(port) {
 
 let vite;
 
+function getBundledElectronVersion() {
+  try {
+    return require("electron/package.json").version;
+  } catch {
+    return undefined;
+  }
+}
+
+function getChromiumVersion(electronVersion) {
+  return electronVersion ? electronChromiumMap[electronVersion] : undefined;
+}
+
+function formatVersionLabel(electronVersion, chromiumVersion) {
+  const electronText = electronVersion ? `Electron ${electronVersion}` : "Electron";
+  const chromiumText = chromiumVersion ? `Chromium ${chromiumVersion}` : "Chromium 앱 실행 후 확인";
+  return `${electronText} / ${chromiumText}`;
+}
+
+function getManagedElectronRoot(version) {
+  return path.join(managedRuntimeDir, `electron-v${version}`);
+}
+
+function getManagedElectronCommand(version) {
+  const runtimeRoot = getManagedElectronRoot(version);
+
+  if (process.platform === "darwin") {
+    return path.join(runtimeRoot, "Electron.app", "Contents", "MacOS", "Electron");
+  }
+
+  if (process.platform === "win32") {
+    return path.join(runtimeRoot, "electron.exe");
+  }
+
+  return path.join(runtimeRoot, "electron");
+}
+
+function getManagedRuntimeStatus(version) {
+  if (version === getBundledElectronVersion()) {
+    return "프로젝트 설치됨";
+  }
+
+  return fs.existsSync(getManagedElectronCommand(version)) ? "설치됨" : "미설치";
+}
+
+function extractZip(zipPath, destination) {
+  fs.rmSync(destination, { recursive: true, force: true });
+  fs.mkdirSync(destination, { recursive: true });
+
+  const result = spawnSync("unzip", ["-q", zipPath, "-d", destination], {
+    cwd: rootDir,
+    stdio: "inherit",
+  });
+
+  if (result.error) {
+    throw result.error;
+  }
+
+  if (result.status !== 0) {
+    throw new Error(`Electron 압축 해제 실패: unzip exit code ${result.status}`);
+  }
+}
+
+async function ensureManagedElectron(version) {
+  if (version === getBundledElectronVersion()) {
+    return electronPath;
+  }
+
+  const command = getManagedElectronCommand(version);
+
+  if (fs.existsSync(command)) {
+    return command;
+  }
+
+  if (!process.stdin.isTTY) {
+    throw new Error(`Electron ${version} 런타임이 없습니다. 터미널에서 실행해 다운로드를 승인하세요.`);
+  }
+
+  const approved = await askQuestion(
+    `\nElectron ${version} 런타임이 없습니다. 지금 다운로드할까요? 데이터가 수백 MB 사용될 수 있습니다. [y/N]: `
+  );
+
+  if (!["y", "yes"].includes(approved.toLowerCase())) {
+    throw new Error(`Electron ${version} 다운로드가 취소되었습니다.`);
+  }
+
+  console.log(`\n[browser-runtime] Electron ${version} 다운로드를 시작합니다.`);
+  const { download } = await import("@electron/get");
+  const zipPath = await download(version, {
+    cacheRoot: path.join(managedRuntimeDir, ".download-cache"),
+  });
+
+  console.log(`[browser-runtime] 다운로드 완료: ${zipPath}`);
+  console.log(`[browser-runtime] ${getManagedElectronRoot(version)}에 압축을 해제합니다.`);
+  extractZip(zipPath, getManagedElectronRoot(version));
+
+  if (!fs.existsSync(command)) {
+    throw new Error(`Electron 실행 파일을 찾지 못했습니다: ${command}`);
+  }
+
+  fs.chmodSync(command, 0o755);
+  return command;
+}
+
 function loadRuntimeOptions() {
   const options = [
-    {
-      id: "bundled",
-      label: "현재 프로젝트 Electron",
-      command: electronPath,
-      args: [],
-      description: "package.json의 electron 버전으로 실행",
-    },
+    ...managedElectronOptions.map((runtime) => {
+      const chromiumVersion = getChromiumVersion(runtime.electronVersion);
+
+      return {
+        id: runtime.id,
+        label: formatVersionLabel(runtime.electronVersion, chromiumVersion),
+        runtimeLabel: `Electron ${runtime.electronVersion}`,
+        command: "",
+        args: [],
+        description: `${runtime.description} (${getManagedRuntimeStatus(runtime.electronVersion)})`,
+        electronVersion: runtime.electronVersion,
+        chromiumVersion,
+        managedVersion: runtime.electronVersion,
+      };
+    }),
   ];
 
   if (process.env.DEBUG_BROWSER_ELECTRON_BIN) {
     options.push({
       id: "env",
       label: "환경변수 Electron",
+      runtimeLabel: "환경변수 Electron",
       command: process.env.DEBUG_BROWSER_ELECTRON_BIN,
       args: [],
-      description: "DEBUG_BROWSER_ELECTRON_BIN 경로로 실행",
+      description: "DEBUG_BROWSER_ELECTRON_BIN 경로로 실행. Chromium 버전은 앱 실행 후 상단에서 확인",
     });
   }
 
@@ -88,9 +237,11 @@ function loadRuntimeOptions() {
           options.push({
             id: runtime.id || `config-${index}`,
             label: runtime.label || runtime.command,
+            runtimeLabel: runtime.runtimeLabel || runtime.label || runtime.command,
             command: runtime.command,
             args: Array.isArray(runtime.args) ? runtime.args : [],
-            description: runtime.description || "browser-runtimes.json 등록 런타임",
+            description:
+              runtime.description || "browser-runtimes.json 등록 런타임. Chromium 버전은 앱 실행 후 상단에서 확인",
           });
         });
       }
@@ -99,17 +250,89 @@ function loadRuntimeOptions() {
     }
   }
 
-  if (process.stdin.isTTY) {
-    options.push({
-      id: "custom",
-      label: "직접 경로 입력",
-      command: "",
-      args: [],
-      description: "설치된 Electron 실행 파일 경로를 직접 입력",
-    });
+  return options;
+}
+
+function formatRuntimeOption(option, index, selectedIndex) {
+  const prefix = index === selectedIndex ? ">" : " ";
+  const status = option.managedVersion ? getManagedRuntimeStatus(option.managedVersion) : "준비됨";
+  const row = `${prefix} ${option.label}  |  ${status}  |  ${option.description}`;
+
+  if (index !== selectedIndex) return `  ${row}`;
+
+  return `\x1B[38;5;208m  ${row}\x1B[0m`;
+}
+
+function renderRuntimeMenu(options, selectedIndex, previousLineCount) {
+  if (previousLineCount > 0) {
+    process.stdout.write(`\x1B[${previousLineCount}A\x1B[0J`);
   }
 
-  return options;
+  const lines = [
+    "디버깅 브라우저 런타임을 선택하세요.",
+    "↑/↓ 이동, Enter 선택, Ctrl+C 종료",
+    "",
+    ...options.map((option, index) => formatRuntimeOption(option, index, selectedIndex)),
+  ];
+
+  process.stdout.write(`${lines.join("\n")}\n`);
+  return lines.length;
+}
+
+function selectRuntimeWithKeyboard(options) {
+  return new Promise((resolve, reject) => {
+    let selectedIndex = 0;
+    let renderedLines = 0;
+    let onData;
+
+    const cleanup = () => {
+      if (onData) {
+        process.stdin.off("data", onData);
+      }
+      process.stdin.setRawMode(false);
+      process.stdin.pause();
+      process.stdout.write("\x1B[?25h");
+    };
+
+    const finish = (option) => {
+      cleanup();
+      process.stdout.write(`\n선택됨: ${option.label}\n`);
+      resolve(option);
+    };
+
+    process.stdout.write("\x1B[?25l");
+    process.stdin.setRawMode(true);
+    process.stdin.resume();
+    process.stdin.setEncoding("utf8");
+
+    renderedLines = renderRuntimeMenu(options, selectedIndex, renderedLines);
+
+    onData = (key) => {
+      if (key === "\u0003") {
+        cleanup();
+        reject(new Error("런타임 선택이 취소되었습니다."));
+        return;
+      }
+
+      if (key === "\r" || key === "\n") {
+        finish(options[selectedIndex]);
+        return;
+      }
+
+      if (key === "\u001B[A" || key === "k") {
+        selectedIndex = selectedIndex === 0 ? options.length - 1 : selectedIndex - 1;
+        renderedLines = renderRuntimeMenu(options, selectedIndex, renderedLines);
+        return;
+      }
+
+      if (key === "\u001B[B" || key === "j") {
+        selectedIndex = selectedIndex === options.length - 1 ? 0 : selectedIndex + 1;
+        renderedLines = renderRuntimeMenu(options, selectedIndex, renderedLines);
+      }
+    };
+
+    process.stdin.on("data", onData);
+  });
 }
 
 function askQuestion(question) {
@@ -133,34 +356,25 @@ async function selectRuntime() {
     ? options.find((option) => option.id === requestedRuntime)
     : undefined;
 
-  if (requestedOption && requestedOption.id !== "custom") return requestedOption;
+  if (requestedOption) return requestedOption;
   if (!process.stdin.isTTY) return options[0];
 
-  console.log("\n디버깅 브라우저 런타임을 선택하세요.");
-  options.forEach((option, index) => {
-    console.log(`  ${index + 1}. ${option.label} - ${option.description}`);
-  });
+  return selectRuntimeWithKeyboard(options);
+}
 
-  const answer = await askQuestion(`선택 [1-${options.length}] (기본 1): `);
-  const selectedIndex = answer ? Number(answer) - 1 : 0;
-  const selectedOption = options[selectedIndex] || options[0];
+async function prepareRuntime(runtime) {
+  if (!runtime.managedVersion) return runtime;
 
-  if (selectedOption.id !== "custom") return selectedOption;
-
-  const customCommand = await askQuestion("Electron 실행 파일 경로: ");
-  if (!customCommand) return options[0];
-
+  const command = await ensureManagedElectron(runtime.managedVersion);
   return {
-    id: "custom",
-    label: "직접 입력 Electron",
-    command: customCommand,
+    ...runtime,
+    command,
     args: [],
-    description: "직접 입력한 Electron 실행 파일",
   };
 }
 
 async function main() {
-  const selectedRuntime = await selectRuntime();
+  const selectedRuntime = await prepareRuntime(await selectRuntime());
   const port = await findAvailablePort(preferredPort);
   const devServerUrl = `http://${host}:${port}/`;
 
@@ -177,7 +391,7 @@ async function main() {
       ...process.env,
       ELECTRON_DISABLE_SECURITY_WARNINGS: "true",
       VITE_DEV_SERVER_URL: devServerUrl,
-      DEBUG_BROWSER_RUNTIME_LABEL: selectedRuntime.label,
+      DEBUG_BROWSER_RUNTIME_LABEL: selectedRuntime.runtimeLabel || selectedRuntime.label,
       DEBUG_BROWSER_RUNTIME_ID: selectedRuntime.id,
     };
     delete electronEnv.ELECTRON_RUN_AS_NODE;
