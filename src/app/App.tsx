@@ -21,7 +21,7 @@ import {
   ResizablePanel,
   ResizablePanelGroup,
 } from "./components/ui/resizable";
-import { Activity, BarChart3, Play, Square } from "lucide-react";
+import { Activity, BarChart3, Moon, Play, Square, Sun } from "lucide-react";
 import {
   emptyTraceSession,
   type NetworkResourceFilterSelection,
@@ -38,6 +38,10 @@ export default function App() {
   const [trace, setTrace] = useState<TraceSession>(emptyTraceSession);
   const [debuggerScripts, setDebuggerScripts] = useState<DebuggerScript[]>([]);
   const [logpointStatus, setLogpointStatus] = useState<string>("");
+  const [themeMode, setThemeMode] = useState<"light" | "dark">(() => {
+    if (typeof window === "undefined") return "light";
+    return window.localStorage.getItem("debug-agent-theme") === "dark" ? "dark" : "light";
+  });
   const [runtimeInfo, setRuntimeInfo] = useState<{
     platform: string;
     runtimeLabel?: string;
@@ -60,6 +64,11 @@ export default function App() {
   const runtimeLabelIncludesChromium =
     runtimeInfo.runtimeLabel?.toLowerCase().includes("chromium") ||
     (runtimeInfo.chromiumVersion ? runtimeInfo.runtimeLabel?.includes(runtimeInfo.chromiumVersion) : false);
+
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", themeMode === "dark");
+    window.localStorage.setItem("debug-agent-theme", themeMode);
+  }, [themeMode]);
 
   useEffect(() => {
     const runtime = (window as any).debugAgentRuntime;
@@ -467,17 +476,17 @@ export default function App() {
     <div className="h-screen flex flex-col bg-background text-foreground">
       <div className="flex-1 flex overflow-hidden">
         <div className="flex-1 flex flex-col overflow-hidden">
-          <div className="px-4 py-3 border-b border-border bg-white flex items-center justify-between">
+          <div className="flex items-center justify-between border-b border-border bg-card px-4 py-3 dark:bg-muted">
             <div className="flex items-center gap-3">
               <h1 className="flex items-center gap-2 text-foreground">
                 <Activity className="w-5 h-5 text-[var(--color-electric-blue)]" />
-                AI Flow Debug
+                AI Debugging Browser
               </h1>
               <EnvironmentBadge environment={trace.environment} />
               <TraceStatusBadge status={visibleTraceStatus} />
               {runtimeInfo.chromiumVersion && (
                 <span
-                  className="rounded border border-[#e2e8f0] bg-[#f8fafc] px-2 py-1 text-[11px] text-[#475569]"
+                  className="rounded border border-border bg-muted px-2 py-1 text-[11px] text-muted-foreground dark:border-border dark:bg-card dark:text-foreground"
                   title={
                     runtimeInfo.electronVersion
                       ? `Electron ${runtimeInfo.electronVersion}`
@@ -505,6 +514,19 @@ export default function App() {
                   {trace.timeline.length} events
                 </span>
               </div>
+              <button
+                type="button"
+                onClick={() => setThemeMode((currentMode) => (currentMode === "dark" ? "light" : "dark"))}
+                className="flex h-8 w-8 items-center justify-center rounded border border-border bg-card text-muted-foreground transition-colors hover:border-[var(--color-electric-blue)] hover:text-[var(--color-electric-blue)] dark:border-border dark:bg-card dark:text-foreground dark:hover:border-[var(--color-electric-blue)] dark:hover:text-white"
+                title={themeMode === "dark" ? "라이트 모드로 전환" : "다크 모드로 전환"}
+                aria-label={themeMode === "dark" ? "라이트 모드로 전환" : "다크 모드로 전환"}
+              >
+                {themeMode === "dark" ? (
+                  <Sun className="h-4 w-4" />
+                ) : (
+                  <Moon className="h-4 w-4" />
+                )}
+              </button>
               <button
                 type="button"
                 onClick={handleToggleRecording}
@@ -545,7 +567,7 @@ export default function App() {
             </ResizablePanel>
             <ResizableHandle
               withHandle
-              className="w-2 cursor-col-resize bg-[#f8fafc] transition-colors after:w-px after:bg-[#cbd5e1] hover:after:w-1 hover:after:bg-[#f36910] data-[resize-handle-active]:after:w-1 data-[resize-handle-active]:after:bg-[#f36910] [&>div]:h-9 [&>div]:w-1.5 [&>div]:rounded-full [&>div]:border-[#cbd5e1] [&>div]:bg-[#cbd5e1] [&>div]:text-transparent [&>div]:transition-colors hover:[&>div]:border-[#f36910] hover:[&>div]:bg-[#f36910] data-[resize-handle-active]:[&>div]:border-[#f36910] data-[resize-handle-active]:[&>div]:bg-[#f36910]"
+              className="w-2 cursor-col-resize bg-muted transition-colors after:w-px after:bg-border hover:after:w-1 hover:after:bg-[#f36910] data-[resize-handle-active]:after:w-1 data-[resize-handle-active]:after:bg-[#f36910] dark:bg-muted dark:after:bg-[#686868] [&>div]:h-9 [&>div]:w-1.5 [&>div]:rounded-full [&>div]:border-border [&>div]:bg-border [&>div]:text-transparent [&>div]:transition-colors hover:[&>div]:border-[#f36910] hover:[&>div]:bg-[#f36910] data-[resize-handle-active]:[&>div]:border-[#f36910] data-[resize-handle-active]:[&>div]:bg-[#f36910] dark:[&>div]:border-border dark:[&>div]:bg-[#686868]"
             />
             <ResizablePanel defaultSize={38} minSize={28}>
               <AnalysisPanel

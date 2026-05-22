@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type PointerEvent, type WheelEvent } from "react";
 import {
   AlertCircle,
+  ChevronDown,
   Clock,
   Code2,
   GitBranch,
@@ -198,7 +199,7 @@ function NetworkItem({
               {urlParts.secondary || apiCall.endpoint}
             </div>
             {callerLabel && (
-              <div className="text-[11px] text-[#9a3412] mt-1 break-all">
+              <div className="text-[11px] text-foreground mt-1 break-all">
                 Called by {callerLabel}
               </div>
             )}
@@ -395,10 +396,10 @@ function getDomMutationBadges(event?: TraceTimelineEvent) {
   if (!domMutation) return [];
 
   return [
-    { label: "추가", value: domMutation.addedCount, className: "border-[#bfdbfe] bg-[#eff6ff] text-[#1d4ed8]" },
-    { label: "삭제", value: domMutation.removedCount, className: "border-[#fecaca] bg-[#fff1f2] text-[#b91c1c]" },
-    { label: "속성", value: domMutation.attributeCount, className: "border-[#fed7aa] bg-[#fff7ed] text-[#c2410c]" },
-    { label: "텍스트", value: domMutation.textCount, className: "border-[#c7d2fe] bg-[#eef2ff] text-[#4338ca]" },
+    { label: "추가", value: domMutation.addedCount, className: "border-[#bfdbfe] bg-[#eff6ff] text-[#1d4ed8] dark:border-[#7f9fba] dark:bg-[#54616c] dark:text-[#eaf4ff]" },
+    { label: "삭제", value: domMutation.removedCount, className: "border-[#fecaca] bg-[#fff1f2] text-[#b91c1c] dark:border-[#a98787] dark:bg-[#5f5555] dark:text-[#ffecec]" },
+    { label: "속성", value: domMutation.attributeCount, className: "border-[#fed7aa] bg-[#fff7ed] text-[#c2410c] dark:border-[#ad8460] dark:bg-[#5f564e] dark:text-[#ffe5cc]" },
+    { label: "텍스트", value: domMutation.textCount, className: "border-[#c7d2fe] bg-[#eef2ff] text-[#4338ca] dark:border-[#8992b0] dark:bg-[#565b68] dark:text-[#edf0ff]" },
   ].filter((item) => item.value > 0);
 }
 
@@ -770,14 +771,14 @@ function NetworkResourceFilterBar({
     <div
       className={
         compact
-          ? "rounded border border-[#d8e1ee] bg-[#f4f7fb] px-3 py-2"
-          : "px-3 py-2 border-b border-border bg-[#f8fafc]"
+          ? "rounded border border-border bg-muted px-3 py-2 dark:border-border dark:bg-card"
+          : "px-3 py-2 border-b border-border bg-muted dark:border-border dark:bg-card"
       }
     >
       <div className={`flex items-center justify-between gap-3 mb-2 ${compact ? "px-1" : ""}`}>
-        <div className="text-xs font-medium text-[#0f172a]">
+        <div className="text-xs font-medium text-foreground dark:text-foreground">
           Network Filter
-          <span className="ml-2 text-[11px] font-normal text-[#5f7fa8]">
+          <span className="ml-2 text-[11px] font-normal text-muted-foreground dark:text-muted-foreground">
             {searchQuery
               ? `"${truncateText(searchQuery, 24)}" 검색 중`
               : allSelected
@@ -785,13 +786,13 @@ function NetworkResourceFilterBar({
                 : "선택한 타입만 표시"}
           </span>
         </div>
-        <div className="text-[11px] text-[#64748b]">
+        <div className="text-[11px] text-muted-foreground dark:text-muted-foreground">
           {visibleCount}/{totalCount} requests 표시
         </div>
       </div>
       <div className="mb-2 flex items-center gap-1.5">
         <div className="relative min-w-0 flex-1">
-          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#94a3b8]" />
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground dark:text-muted-foreground" />
           <input
             value={draftQuery}
             onChange={(event) => setDraftQuery(event.target.value)}
@@ -800,13 +801,13 @@ function NetworkResourceFilterBar({
               if (event.key === "Escape") clearSearch();
             }}
             placeholder="URL, query, request/response 검색"
-            className="h-8 w-full rounded border border-[#d8e1ee] bg-white pl-8 pr-7 text-xs text-[#0f172a] outline-none placeholder:text-[#94a3b8] focus:border-[#9fb7d0] focus:ring-2 focus:ring-[#e8f0f8]"
+            className="h-8 w-full rounded border border-border bg-card pl-8 pr-7 text-xs text-foreground outline-none placeholder:text-muted-foreground focus:border-border focus:ring-2 focus:ring-muted dark:border-border dark:bg-card dark:text-foreground dark:placeholder:text-muted-foreground dark:focus:border-border dark:focus:ring-[#5a5a5a]"
           />
           {draftQuery && (
             <button
               type="button"
               onClick={clearSearch}
-              className="absolute right-1.5 top-1/2 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded text-[#94a3b8] hover:bg-[#f1f5f9] hover:text-[#334155]"
+              className="absolute right-1.5 top-1/2 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground dark:text-muted-foreground dark:hover:bg-muted dark:hover:text-foreground"
               title="검색어 지우기"
             >
               <X className="h-3.5 w-3.5" />
@@ -816,7 +817,7 @@ function NetworkResourceFilterBar({
         <button
           type="button"
           onClick={applySearch}
-          className="h-8 shrink-0 rounded border border-[#b8c9dd] bg-[#eef4fb] px-3 text-xs font-medium text-[#3f6389] hover:bg-[#e4edf7]"
+          className="h-8 shrink-0 rounded border border-border bg-muted px-3 text-xs font-medium text-foreground hover:bg-muted dark:border-border dark:bg-card dark:text-foreground dark:hover:bg-muted"
         >
           검색
         </button>
@@ -836,8 +837,8 @@ function NetworkResourceFilterBar({
             title={option.description}
             className={`h-7 min-w-[64px] px-2.5 rounded-full border text-center text-[11px] transition-colors ${
               value.includes(option.value)
-                ? "border-[#b8c9dd] bg-[#eef4fb] text-[#3f6389] shadow-[inset_0_0_0_1px_rgba(63,99,137,0.08)]"
-                : "border-[#e2e8f0] bg-white text-[#94a3b8] opacity-70 hover:opacity-100 hover:border-[#b8c9dd] hover:text-[#0f172a]"
+                ? "border-[#b8c9dd] bg-[#eef4fb] text-[#3f6389] shadow-[inset_0_0_0_1px_rgba(63,99,137,0.08)] dark:border-[#8b98a5] dark:bg-[#5b636b] dark:text-[#eef5fb]"
+                : "border-border bg-card text-muted-foreground opacity-70 hover:opacity-100 hover:border-border hover:text-foreground dark:border-border dark:bg-card dark:text-muted-foreground dark:hover:border-border dark:hover:bg-muted dark:hover:text-foreground"
             }`}
           >
             {option.label}
@@ -853,10 +854,10 @@ function getFlowVisual(item: Pick<FlowStoryItem, "type" | "status">) {
     return {
       accent: "#b91c1c",
       edge: "#f87171",
-      tone: "border-[#fecaca] bg-[#fff1f2]",
+      tone: "border-[#fecaca] bg-[#fff1f2] dark:border-[#a98787] dark:bg-[#5f5555]",
       iconTone: "bg-[#b91c1c] text-white",
-      node: "border-[#fecaca] bg-[#fff1f2] text-[#991b1b]",
-      chip: "bg-[#fee2e2] border-[#fecaca] text-[#991b1b]",
+      node: "border-[#fecaca] bg-[#fff1f2] text-[#991b1b] dark:border-[#a98787] dark:bg-[#5f5555] dark:text-[#ffecec]",
+      chip: "bg-[#fee2e2] border-[#fecaca] text-[#991b1b] dark:border-[#a98787] dark:bg-[#665a5a] dark:text-[#ffecec]",
       label: "ERROR",
     };
   }
@@ -865,22 +866,22 @@ function getFlowVisual(item: Pick<FlowStoryItem, "type" | "status">) {
     return {
       accent: "#c2410c",
       edge: "#fdba74",
-      tone: "border-[#fed7aa] bg-[#ffedd5]",
+      tone: "border-[#fed7aa] bg-[#ffedd5] dark:border-[#ad8460] dark:bg-[#5f564e]",
       iconTone: "bg-[#c2410c] text-white",
-      node: "border-[#fed7aa] bg-[#ffedd5] text-[#9a3412]",
-      chip: "bg-white/80 border-[#fed7aa] text-[#9a3412]",
+      node: "border-[#fed7aa] bg-[#ffedd5] text-[#9a3412] dark:border-[#ad8460] dark:bg-[#5f564e] dark:text-[#ffe5cc]",
+      chip: "bg-white/80 border-[#fed7aa] text-[#9a3412] dark:border-[#ad8460] dark:bg-[#675b50] dark:text-[#ffe5cc]",
       label: "API",
     };
   }
 
   if (item.type === "action") {
     return {
-      accent: "#334155",
-      edge: "#94a3b8",
-      tone: "border-[#94a3b8] bg-[#f1f5f9]",
-      iconTone: "bg-[#334155] text-white",
-      node: "border-[#94a3b8] bg-[#f1f5f9] text-[#1e293b]",
-      chip: "bg-white/80 border-[#94a3b8] text-[#334155]",
+      accent: "var(--color-foreground)",
+      edge: "#8a8a8a",
+      tone: "border-border bg-muted",
+      iconTone: "bg-[#5f5f5f] text-white",
+      node: "border-border bg-muted text-foreground",
+      chip: "bg-card border-border text-foreground",
       label: "EVENT",
     };
   }
@@ -889,10 +890,10 @@ function getFlowVisual(item: Pick<FlowStoryItem, "type" | "status">) {
     return {
       accent: "#0284c7",
       edge: "#7dd3fc",
-      tone: "border-[#bae6fd] bg-[#f0f9ff]",
+      tone: "border-[#bae6fd] bg-[#f0f9ff] dark:border-[#7295a3] dark:bg-[#51616a]",
       iconTone: "bg-[#0284c7] text-white",
-      node: "border-[#bae6fd] bg-[#f0f9ff] text-[#075985]",
-      chip: "bg-white/80 border-[#bae6fd] text-[#075985]",
+      node: "border-[#bae6fd] bg-[#f0f9ff] text-[#075985] dark:border-[#7295a3] dark:bg-[#51616a] dark:text-[#dff7ff]",
+      chip: "bg-white/80 border-[#bae6fd] text-[#075985] dark:border-[#7295a3] dark:bg-[#5a6870] dark:text-[#dff7ff]",
       label: "DOM",
     };
   }
@@ -901,21 +902,21 @@ function getFlowVisual(item: Pick<FlowStoryItem, "type" | "status">) {
     return {
       accent: "#f36910",
       edge: "#fb923c",
-      tone: "border-[#fed7aa] bg-white",
+      tone: "border-[#fed7aa] bg-card dark:border-[#ad8460] dark:bg-card",
       iconTone: "bg-[#f36910] text-white",
-      node: "border-[#fed7aa] bg-white text-[#9a3412]",
-      chip: "bg-[#fff7ed] border-[#fed7aa] text-[#9a3412]",
+      node: "border-[#fed7aa] bg-card text-[#9a3412] dark:border-[#ad8460] dark:bg-card dark:text-[#ffe5cc]",
+      chip: "bg-[#fff7ed] border-[#fed7aa] text-[#9a3412] dark:border-[#ad8460] dark:bg-[#5f564e] dark:text-[#ffe5cc]",
       label: "FUNCTION",
     };
   }
 
   return {
-    accent: "#64748b",
-    edge: "#94a3b8",
-    tone: "border-[#e2e8f0] bg-white",
-    iconTone: "bg-[#64748b] text-white",
-    node: "border-[#e4e7ec] bg-white text-[#344054]",
-    chip: "bg-white border-[#e2e8f0] text-[#475569]",
+    accent: "var(--color-muted-foreground)",
+    edge: "#8a8a8a",
+    tone: "border-border bg-card",
+    iconTone: "bg-[#5f5f5f] text-white",
+    node: "border-border bg-card text-foreground",
+    chip: "bg-card border-border text-muted-foreground",
     label: item.type === "scenario" ? "START" : "PAGE",
   };
 }
@@ -1116,20 +1117,20 @@ function FlowDiagnosis({ trace, story }: { trace: TraceSession; story: FlowStory
       : "사용자 행동이 시나리오 시작점으로 기록되고, 이어지는 함수/API/에러가 하나의 이야기처럼 연결됩니다.";
 
   return (
-    <div className="border border-[#fed7aa] bg-[#fff7ed] rounded p-3 text-[#0f172a]">
+    <div className="border border-border bg-muted rounded p-3 text-foreground">
       <div className="flex items-center gap-2">
         <Sparkles className="w-4 h-4 text-[#f36910]" />
         <div className="text-sm font-medium">{title}</div>
       </div>
-      <div className="text-xs text-[#475569] mt-1">{description}</div>
+      <div className="text-xs text-muted-foreground mt-1">{description}</div>
       <div className="flex flex-wrap gap-2 mt-3 text-[11px]">
-        <span className="px-2 py-1 rounded bg-white border border-[#fed7aa]">
+        <span className="px-2 py-1 rounded bg-card border border-border">
           함수 {trace.functions.length}
         </span>
-        <span className="px-2 py-1 rounded bg-white border border-[#fed7aa]">
+        <span className="px-2 py-1 rounded bg-card border border-border">
           API {visibleApiCount}/{trace.apiCalls.length}
         </span>
-        <span className="px-2 py-1 rounded bg-white border border-[#fed7aa]">
+        <span className="px-2 py-1 rounded bg-card border border-border">
           에러 {trace.errors.length}
         </span>
       </div>
@@ -1168,7 +1169,7 @@ function FlowStoryCard({
 
   return (
     <div className="relative">
-      {index > 0 && <div className="absolute -top-3 left-5 w-px h-3 bg-[#cbd5e1]" />}
+      {index > 0 && <div className="absolute -top-3 left-5 w-px h-3 bg-border" />}
       <button
         type="button"
         onClick={onToggle}
@@ -1188,23 +1189,23 @@ function FlowStoryCard({
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center justify-between gap-3">
-              <div className="text-[11px] text-[#64748b] uppercase tracking-wide flex items-center gap-1.5">
+              <div className="text-[11px] text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
                 <span style={{ color: visual.accent }}>{visual.label}</span>
                 <span>· {item.timestamp}</span>
               </div>
               <div className="flex shrink-0 items-center gap-1.5">
                 {item.status === "error" && (
-                  <span className="px-2 py-0.5 rounded bg-[#fee2e2] text-[#b91c1c] text-[10px]">
+                  <span className="px-2 py-0.5 rounded bg-muted text-foreground text-[10px]">
                     확인 필요
                   </span>
                 )}
               </div>
             </div>
-            <div className="text-sm text-[#0f172a] font-medium mt-1 break-words">
+            <div className="text-sm text-foreground font-medium mt-1 break-words">
               {item.title}
             </div>
             {item.subtitle && (
-              <div className="text-xs text-[#475569] mt-1 break-all">{item.subtitle}</div>
+              <div className="text-xs text-muted-foreground mt-1 break-all">{item.subtitle}</div>
             )}
             {item.functionNode && getFunctionSummary(item.functionNode).length > 0 && (
               <div className="flex flex-wrap gap-1.5 mt-2">
@@ -1251,7 +1252,7 @@ function FlowStoryCard({
         </div>
       </button>
       {expanded && (
-        <div className="ml-12 mt-2 border border-[#e2e8f0] bg-white rounded p-3 space-y-3">
+        <div className="ml-12 mt-2 border border-border bg-card rounded p-3 space-y-3">
           {item.functionNode && <FunctionStoryDetail functionNode={item.functionNode} />}
           {item.apiCall && (
             <>
@@ -1326,11 +1327,11 @@ function ApiParameterSummary({
   const hasBody = body !== undefined && body !== "";
 
   return (
-    <div className="border border-[#fed7aa] bg-[#fff7ed] rounded p-3 space-y-3">
+    <div className="border border-border bg-muted rounded p-3 space-y-3">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="text-sm font-medium text-[#0f172a]">API Parameter Summary</div>
-          <div className="text-xs text-[#7c2d12] mt-1 break-all">
+          <div className="text-sm font-medium text-foreground">API Parameter Summary</div>
+          <div className="text-xs text-muted-foreground mt-1 break-all">
             {caller
               ? truncateText(
                   `Called by ${caller.functionName || "(anonymous)"}() · ${
@@ -1353,23 +1354,23 @@ function ApiParameterSummary({
       </div>
 
       {showTraceButton && caller?.sourceFile && caller.line && (
-        <div className="text-[11px] text-[#7c2d12] bg-white border border-[#fed7aa] rounded p-2">
+        <div className="text-[11px] text-muted-foreground bg-card border border-border rounded p-2">
           버튼을 누르면 다음 실행부터 이 API 호출 라인 주변에 logpoint가 걸리고, 해당
           함수의 local 변수/파라미터가 Flow 함수 카드로 수집됩니다.
         </div>
       )}
 
       <div className="grid gap-3 md:grid-cols-2">
-        <div className="border border-[#fed7aa] bg-white rounded overflow-hidden">
-          <div className="px-3 py-2 bg-[#ffedd5] text-xs text-[#9a3412]">Query Params</div>
+        <div className="border border-border bg-card rounded overflow-hidden">
+          <div className="px-3 py-2 bg-muted text-xs text-foreground">Query Params</div>
           <KeyValuePreview values={query} emptyText="query parameter가 없습니다." />
         </div>
-        <div className="border border-[#fed7aa] bg-white rounded overflow-hidden">
-          <div className="px-3 py-2 bg-[#ffedd5] text-xs text-[#9a3412]">Request Body</div>
+        <div className="border border-border bg-card rounded overflow-hidden">
+          <div className="px-3 py-2 bg-muted text-xs text-foreground">Request Body</div>
           {hasBody && typeof body === "object" && body !== null ? (
             <KeyValuePreview values={body as Record<string, unknown>} emptyText="body가 없습니다." />
           ) : (
-            <div className="p-3 text-xs text-[#475569] break-all">
+            <div className="p-3 text-xs text-muted-foreground break-all">
               {hasBody ? truncateText(formatValue(body), 220) : "body가 없습니다."}
             </div>
           )}
@@ -1522,10 +1523,10 @@ function buildTraceFindings(trace: TraceSession, story: FlowStoryItem[]): TraceF
 function TraceFindingCard({ finding }: { finding: TraceFinding }) {
   const tone =
     finding.severity === "critical"
-      ? "border-[#fecaca] bg-[#fff1f2] text-[#991b1b]"
+      ? "border-[#fecaca] bg-[#fff1f2] dark:border-[#a98787] dark:bg-[#5f5555]"
       : finding.severity === "warning"
-        ? "border-[#fed7aa] bg-[#fff7ed] text-[#9a3412]"
-        : "border-[#bfdbfe] bg-[#eff6ff] text-[#1d4ed8]";
+        ? "border-[#fed7aa] bg-[#fff7ed] dark:border-[#ad8460] dark:bg-[#5f564e]"
+        : "border-[#fed7aa] bg-white dark:border-[#ad8460] dark:bg-[#5a554f]";
   const label =
     finding.severity === "critical"
       ? "높음"
@@ -1537,15 +1538,15 @@ function TraceFindingCard({ finding }: { finding: TraceFinding }) {
     <div className={`min-w-0 rounded border p-3 ${tone}`}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="text-sm font-medium break-words">{finding.title}</div>
-          <div className="mt-1 text-xs text-[#0f172a] break-words [overflow-wrap:anywhere]">
+          <div className="text-sm font-medium break-words" style={{ color: "var(--analysis-body-text)" }}>{finding.title}</div>
+          <div className="mt-1 text-xs break-words [overflow-wrap:anywhere]" style={{ color: "var(--analysis-body-text)" }}>
             {finding.description}
           </div>
         </div>
-        <span className="shrink-0 rounded bg-white/80 px-2 py-0.5 text-[10px]">{label}</span>
+        <span className="shrink-0 rounded bg-white/80 px-2 py-0.5 text-[10px] dark:bg-card/70" style={{ color: "var(--analysis-body-text)" }}>{label}</span>
       </div>
       {finding.evidence && (
-        <div className="mt-2 rounded bg-white/70 px-2 py-1 text-[11px] text-[#475569] break-all [overflow-wrap:anywhere]">
+        <div className="mt-2 rounded bg-white/70 px-2 py-1 text-[11px] opacity-90 break-all [overflow-wrap:anywhere] dark:bg-card/70" style={{ color: "var(--analysis-body-text)" }}>
           {finding.evidence}
         </div>
       )}
@@ -1555,15 +1556,15 @@ function TraceFindingCard({ finding }: { finding: TraceFinding }) {
 
 function TraceFindingsSection({ findings }: { findings: TraceFinding[] }) {
   return (
-    <div className="rounded border border-[#e2e8f0] bg-[#f8fafc] p-3">
+    <div className="rounded border border-[#fed7aa] bg-[#fff7ed] p-3 dark:border-[#ad8460] dark:bg-[#5f564e]">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <div className="text-sm font-medium text-[#0f172a]">자동 이상징후</div>
-          <div className="text-xs text-[#64748b] mt-1">
+          <div className="text-sm font-medium text-[#9a3412] dark:text-[#ffe5cc]">자동 이상징후</div>
+          <div className="text-xs mt-1" style={{ color: "var(--analysis-body-text)" }}>
             AI 분석 전후로 먼저 확인할 실패, 지연, DOM 변경, 수집 부족 신호입니다.
           </div>
         </div>
-        <span className="rounded bg-white px-2 py-1 text-[11px] text-[#64748b]">
+        <span className="rounded bg-white/80 px-2 py-1 text-[11px] dark:bg-card/70" style={{ color: "var(--analysis-body-text)" }}>
           {findings.length}개
         </span>
       </div>
@@ -1593,20 +1594,20 @@ function TraceReport({ trace, story }: { trace: TraceSession; story: FlowStoryIt
       : "치명적인 오류 없이 시나리오가 종료되었습니다.";
 
   return (
-    <div className="border border-[#e2e8f0] bg-white rounded overflow-hidden">
-      <div className="px-4 py-3 bg-[#f8fafc] border-b border-[#e2e8f0]">
+    <div className="border border-border bg-card rounded overflow-hidden">
+      <div className="px-4 py-3 bg-muted border-b border-border">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <div className="text-sm font-medium text-[#0f172a]">Trace Report</div>
-            <div className="text-xs text-[#64748b] mt-1">
+            <div className="text-sm font-medium text-foreground">Trace Report</div>
+            <div className="text-xs text-muted-foreground mt-1">
               Trace 종료 후 수집된 흐름을 요약한 리포트입니다.
             </div>
           </div>
           <span
             className={`px-2 py-1 rounded text-xs ${
               firstError || candidateApi
-                ? "bg-[#fee2e2] text-[#b91c1c]"
-                : "bg-[#ecfdf3] text-[#027a48]"
+                ? "bg-muted text-foreground"
+                : "bg-muted text-foreground"
             }`}
           >
             {firstError || candidateApi ? "확인 필요" : "정상 종료"}
@@ -1639,9 +1640,9 @@ function TraceReport({ trace, story }: { trace: TraceSession; story: FlowStoryIt
         </div>
 
         {(candidateApi || firstError) && (
-          <div className="border border-[#fecaca] bg-[#fef2f2] rounded p-3">
-            <div className="text-sm font-medium text-[#991b1b]">Root Cause Candidate</div>
-            <div className="text-xs text-[#7f1d1d] mt-1">
+          <div className="border border-border bg-muted rounded p-3">
+            <div className="text-sm font-medium text-foreground">Root Cause Candidate</div>
+            <div className="text-xs text-muted-foreground mt-1">
               {candidateApi
                 ? `${candidateApi.method} ${getApiPath(candidateApi.endpoint)} (${candidateApi.status}) 요청과 직전 함수 파라미터를 우선 확인하세요.`
                 : `${firstError?.file}:${firstError?.line} 에서 발생한 ${firstError?.type}를 우선 확인하세요.`}
@@ -1864,61 +1865,89 @@ function normalizeAiAnalysis(value: unknown): AiDebugAnalysis {
   };
 }
 
+type AiAnalysisStatus = "idle" | "loading" | "success" | "error";
+
+interface AiAnalysisState {
+  status: AiAnalysisStatus;
+  result: AiDebugAnalysis | null;
+  message: string;
+}
+
 function ErrorAnalysisTool({ trace, story }: { trace: TraceSession; story: FlowStoryItem[] }) {
   const [selectedErrorId, setSelectedErrorId] = useState<string | null>(trace.errors[0]?.id || null);
-  const [aiStatus, setAiStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
-  const [aiResult, setAiResult] = useState<AiDebugAnalysis | null>(null);
-  const [aiMessage, setAiMessage] = useState("");
+  const [aiAnalysisByErrorId, setAiAnalysisByErrorId] = useState<Record<string, AiAnalysisState>>({});
   const [autoAnalysisKey, setAutoAnalysisKey] = useState("");
   const selectedError =
     trace.errors.find((error) => error.id === selectedErrorId) || trace.errors[0];
-  const analysis = selectedError ? analyzeErrorMessage(selectedError, story) : undefined;
   const findings = buildTraceFindings(trace, story);
-  const runAiAnalysis = async () => {
-    if (!selectedError) return;
+  const selectedAiAnalysis = selectedError ? aiAnalysisByErrorId[selectedError.id] : undefined;
+  const aiStatus = selectedAiAnalysis?.status || "idle";
+  const updateAiAnalysis = (errorId: string, nextState: AiAnalysisState) => {
+    setAiAnalysisByErrorId((current) => ({
+      ...current,
+      [errorId]: nextState,
+    }));
+  };
+  const runAiAnalysis = async (targetError: TraceError) => {
+    const errorId = targetError.id;
 
     const runtime = (window as any).debugAgentRuntime;
     if (!runtime?.analyzeError) {
-      setAiStatus("error");
-      setAiMessage("Electron AI 분석 API가 연결되어 있지 않습니다.");
+      updateAiAnalysis(errorId, {
+        status: "error",
+        result: null,
+        message: "Electron AI 분석 API가 연결되어 있지 않습니다.",
+      });
       return;
     }
 
-    setAiStatus("loading");
-    setAiMessage("");
-    setAiResult(null);
+    updateAiAnalysis(errorId, {
+      status: "loading",
+      result: null,
+      message: "",
+    });
 
     try {
       const result = await runtime.analyzeError(
-        createAiAnalysisPayload({ trace, story, selectedError })
+        createAiAnalysisPayload({ trace, story, selectedError: targetError })
       );
 
       if (!result?.ok) {
-        setAiStatus("error");
-        setAiMessage(result?.message || "AI 분석에 실패했습니다.");
+        updateAiAnalysis(errorId, {
+          status: "error",
+          result: null,
+          message: result?.message || "AI 분석에 실패했습니다.",
+        });
         return;
       }
 
-      setAiStatus("success");
-      setAiResult(normalizeAiAnalysis(result.analysis));
-      setAiMessage(
-        result.model
+      updateAiAnalysis(errorId, {
+        status: "success",
+        result: normalizeAiAnalysis(result.analysis),
+        message: result.model
           ? `${result.provider === "ollama" ? "Ollama" : "OpenAI"} · ${result.model} 분석 완료`
-          : "AI 분석 완료"
-      );
+          : "AI 분석 완료",
+      });
     } catch (error) {
-      setAiStatus("error");
-      setAiMessage(error instanceof Error ? error.message : "AI 분석에 실패했습니다.");
+      updateAiAnalysis(errorId, {
+        status: "error",
+        result: null,
+        message: error instanceof Error ? error.message : "AI 분석에 실패했습니다.",
+      });
     }
   };
 
   useEffect(() => {
     setSelectedErrorId(trace.errors[0]?.id || null);
-    setAiStatus("idle");
-    setAiResult(null);
-    setAiMessage("");
+    setAiAnalysisByErrorId({});
     setAutoAnalysisKey("");
   }, [trace.id]);
+
+  useEffect(() => {
+    if (!selectedErrorId && trace.errors[0]) {
+      setSelectedErrorId(trace.errors[0].id);
+    }
+  }, [selectedErrorId, trace.errors]);
 
   useEffect(() => {
     if (trace.status !== "completed" || !selectedError) return;
@@ -1927,92 +1956,40 @@ function ErrorAnalysisTool({ trace, story }: { trace: TraceSession; story: FlowS
     if (autoAnalysisKey === nextKey || aiStatus === "loading") return;
 
     setAutoAnalysisKey(nextKey);
-    void runAiAnalysis();
+    void runAiAnalysis(selectedError);
   }, [trace.status, trace.id, selectedError?.id, autoAnalysisKey, aiStatus]);
 
   return (
-    <div className="border border-[#e2e8f0] bg-white rounded overflow-hidden">
-      <div className="px-4 py-3 bg-[#fff7ed] border-b border-[#fed7aa]">
-        <div className="flex items-center justify-between gap-3">
+    <div className="border border-[#fed7aa] bg-card rounded overflow-hidden dark:border-[#ad8460] dark:bg-card">
+      <div className="px-4 py-3 bg-[#fff7ed] border-b border-[#fed7aa] dark:border-[#ad8460] dark:bg-[#5f564e]">
+        <div className="flex items-center gap-3">
           <div className="min-w-0">
-            <div className="flex items-center gap-2 text-sm font-medium text-[#0f172a]">
+            <div className="flex items-center gap-2 text-sm font-medium text-[#9a3412] dark:text-[#ffe5cc]">
               <Sparkles className="w-4 h-4 text-[#f36910]" />
               자동 AI 분석
             </div>
-            <div className="text-xs text-[#7c2d12] mt-1 break-words">
+            <div className="text-xs mt-1 break-words" style={{ color: "var(--analysis-body-text)" }}>
               Trace 종료 후 에러, 직전 함수, 실패 API, DOM 변화를 기반으로 원인 후보를 정리합니다.
             </div>
-          </div>
-          <div className="shrink-0 rounded border border-[#fed7aa] bg-white px-3 py-1.5 text-xs text-[#9a3412]">
-            {aiStatus === "loading"
-              ? "분석 중"
-              : aiStatus === "success"
-                ? "분석 완료"
-                : aiStatus === "error"
-                  ? "분석 실패"
-                  : trace.status === "completed"
-                    ? "자동 대기"
-                    : "Trace 종료 후 자동 실행"}
           </div>
         </div>
       </div>
 
-      {selectedError && analysis ? (
+      {selectedError ? (
         <div className="p-4 space-y-4">
-          {aiMessage && (
-            <div
-              className={`rounded border px-3 py-2 text-xs ${
-                aiStatus === "error"
-                  ? "border-[#fecaca] bg-[#fff1f2] text-[#991b1b]"
-                  : "border-[#bfdbfe] bg-[#eff6ff] text-[#1d4ed8]"
-              }`}
-            >
-              {aiMessage}
-            </div>
-          )}
-
+          <ErrorAccordionList
+            errors={trace.errors}
+            selectedErrorId={selectedError.id}
+            aiAnalysisByErrorId={aiAnalysisByErrorId}
+            story={story}
+            onSelect={setSelectedErrorId}
+          />
           <TraceFindingsSection findings={findings} />
-
-          {trace.errors.length > 1 && (
-            <div className="flex gap-1.5 overflow-x-auto">
-              {trace.errors.map((error, index) => (
-                <button
-                  key={error.id}
-                  type="button"
-                  onClick={() => setSelectedErrorId(error.id)}
-                  className={`shrink-0 px-2.5 py-1.5 rounded border text-[11px] ${
-                    selectedError.id === error.id
-                      ? "border-[#f36910] bg-[#fff7ed] text-[#c2410c]"
-                      : "border-[#e2e8f0] bg-white text-[#64748b] hover:border-[#fed7aa]"
-                  }`}
-                >
-                  Error {index + 1}
-                </button>
-              ))}
-            </div>
-          )}
-
-          <div className="border border-[#fecaca] bg-[#fff1f2] rounded p-3">
-            <div className="text-xs text-[#991b1b]">{selectedError.type}</div>
-            <div className="text-sm text-[#0f172a] mt-1 break-words">
-              {selectedError.message}
-            </div>
-            <div className="text-[11px] text-[#7f1d1d] mt-1 break-all">
-              {selectedError.file}:{selectedError.line}
-              {selectedError.column ? `:${selectedError.column}` : ""}
-            </div>
-          </div>
-
-          {aiResult ? (
-            <AiAnalysisResultView result={aiResult} />
-          ) : (
-            <LocalAnalysisFallback analysis={analysis} />
-          )}
         </div>
       ) : (
         <div className="p-4 space-y-4">
           <TraceFindingsSection findings={findings} />
-          <div className="rounded border border-[#e2e8f0] bg-white p-5 text-center">
+          <div className="rounded border border-border bg-card p-5 text-center dark:border-border dark:bg-card">
             <div className="text-sm text-foreground">분석할 에러가 없습니다</div>
             <div className="text-xs text-muted-foreground mt-1">
               Trace 중 console error, window error, unhandled rejection이 잡히면 자동 AI 분석이 실행됩니다.
@@ -2024,12 +2001,184 @@ function ErrorAnalysisTool({ trace, story }: { trace: TraceSession; story: FlowS
   );
 }
 
+function ErrorAccordionList({
+  errors,
+  selectedErrorId,
+  aiAnalysisByErrorId,
+  story,
+  onSelect,
+}: {
+  errors: TraceError[];
+  selectedErrorId?: string;
+  aiAnalysisByErrorId: Record<string, AiAnalysisState>;
+  story: FlowStoryItem[];
+  onSelect: (errorId: string) => void;
+}) {
+  return (
+    <div className="min-w-0 rounded border border-border bg-card p-3">
+      <div className="flex items-center justify-between gap-2">
+        <div>
+          <div className="text-sm font-medium text-foreground">에러 목록</div>
+          <div className="text-xs text-muted-foreground mt-1">
+            항목을 누르면 해당 에러 기준으로 AI 코멘트를 확인합니다.
+          </div>
+        </div>
+        <span className="rounded bg-muted px-2 py-1 text-[11px] text-muted-foreground">
+          {errors.length}개
+        </span>
+      </div>
+      <div className="mt-3 grid gap-2">
+        {errors.map((error, index) => {
+          const selected = selectedErrorId === error.id;
+          const aiState = aiAnalysisByErrorId[error.id];
+          const itemAnalysis = analyzeErrorMessage(error, story);
+          const statusLabel =
+            aiState?.status === "loading"
+              ? "분석 중"
+              : aiState?.status === "success"
+                ? "코멘트"
+                : aiState?.status === "error"
+                  ? "확인"
+                  : "대기";
+
+          return (
+            <div
+              key={error.id}
+              className={`min-w-0 overflow-hidden rounded border transition-colors ${
+                selected
+                  ? "border-[#f36910] bg-[#fff7ed] dark:border-[#ad8460] dark:bg-[#5f564e]"
+                  : "border-border bg-muted hover:bg-card dark:bg-muted dark:hover:bg-card"
+              }`}
+            >
+              <button
+                type="button"
+                onClick={() => onSelect(error.id)}
+                className="flex w-full min-w-0 items-start gap-3 px-3 py-3 text-left"
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-medium uppercase text-[#991b1b] dark:text-[#ffecec]">
+                      Error {index + 1}
+                    </span>
+                    <span className="rounded bg-card px-2 py-0.5 text-[10px] text-muted-foreground">
+                      {statusLabel}
+                    </span>
+                  </div>
+                  <div className="mt-1 text-sm font-medium text-foreground break-words [overflow-wrap:anywhere]">
+                    {truncateText(error.message, 180)}
+                  </div>
+                  <div className="mt-1 text-[11px] text-muted-foreground break-all">
+                    {error.type} · {error.file}:{error.line}
+                    {error.column ? `:${error.column}` : ""}
+                  </div>
+                </div>
+                <ChevronDown
+                  className={`mt-1 h-4 w-4 shrink-0 text-muted-foreground transition-transform ${
+                    selected ? "rotate-180" : ""
+                  }`}
+                />
+              </button>
+
+              {selected && (
+                <div className="border-t border-border bg-card p-3 dark:bg-card">
+                  <div className="grid gap-3">
+                    <SelectedErrorSummary error={error} />
+                    <AiAnalysisComment
+                      status={aiState?.status || "idle"}
+                      message={aiState?.message || ""}
+                      result={aiState?.result || null}
+                      analysis={itemAnalysis}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function SelectedErrorSummary({ error }: { error: TraceError }) {
+  return (
+    <div className="border border-[#fecaca] bg-[#fff1f2] rounded p-3 dark:border-[#a98787] dark:bg-[#5f5555]">
+      <div className="text-xs text-[#991b1b] dark:text-[#ffecec]">{error.type}</div>
+      <div className="text-sm text-foreground mt-1 break-words dark:text-foreground">
+        {error.message}
+      </div>
+      <div className="text-[11px] text-[#7f1d1d] mt-1 break-all dark:text-[#f1cccc]">
+        {error.file}:{error.line}
+        {error.column ? `:${error.column}` : ""}
+      </div>
+    </div>
+  );
+}
+
+function AiAnalysisComment({
+  status,
+  message,
+  result,
+  analysis,
+}: {
+  status: AiAnalysisStatus;
+  message: string;
+  result: AiDebugAnalysis | null;
+  analysis: { cause: string; focus: string; actions: string[] };
+}) {
+  return (
+    <div className="rounded border border-border bg-card p-3">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <div className="text-sm font-medium text-foreground">AI 분석 코멘트</div>
+          <div className="text-xs text-muted-foreground mt-1">
+            선택한 에러의 원인 후보와 먼저 볼 지점을 정리합니다.
+          </div>
+        </div>
+        <span className="rounded bg-muted px-2 py-1 text-[11px] text-muted-foreground">
+          {status === "loading"
+            ? "분석 중"
+            : status === "success"
+              ? "완료"
+              : status === "error"
+                ? "로컬 코멘트"
+                : "대기"}
+        </span>
+      </div>
+
+      <div className="mt-3 space-y-3">
+        {message && (
+          <div
+            className={`rounded border px-3 py-2 text-xs ${
+              status === "error"
+                ? "border-[#fecaca] bg-[#fff1f2] text-[#991b1b] dark:border-[#a98787] dark:bg-[#5f5555] dark:text-[#ffecec]"
+                : "border-[#bfdbfe] bg-[#eff6ff] text-[#1d4ed8] dark:border-[#7f9fba] dark:bg-[#54616c] dark:text-[#eaf4ff]"
+            }`}
+          >
+            {message}
+          </div>
+        )}
+
+        {status === "loading" ? (
+          <div className="rounded border border-border bg-muted px-3 py-4 text-center text-xs text-muted-foreground">
+            선택한 에러를 분석하고 있습니다.
+          </div>
+        ) : result ? (
+          <AiAnalysisResultView result={result} />
+        ) : (
+          <LocalAnalysisFallback analysis={analysis} />
+        )}
+      </div>
+    </div>
+  );
+}
+
 function AiAnalysisResultView({ result }: { result: AiDebugAnalysis }) {
   return (
     <div className="space-y-3">
-      <div className="border border-[#bfdbfe] bg-[#eff6ff] rounded p-3">
-        <div className="text-xs font-medium text-[#1d4ed8]">AI 결론</div>
-        <div className="text-sm text-[#0f172a] mt-1 break-words [overflow-wrap:anywhere]">
+      <div className="border border-[#bfdbfe] bg-[#eff6ff] rounded p-3 dark:border-[#7f9fba] dark:bg-[#54616c]">
+        <div className="text-xs font-medium text-[#1d4ed8] dark:text-[#eaf4ff]">AI 결론</div>
+        <div className="text-sm text-foreground mt-1 break-words [overflow-wrap:anywhere]">
           {result.summary || result.rootCause || "AI 분석 결과가 비어 있습니다."}
         </div>
       </div>
@@ -2040,7 +2189,7 @@ function AiAnalysisResultView({ result }: { result: AiDebugAnalysis }) {
       </div>
 
       {result.evidence && result.evidence.length > 0 && (
-        <AnalysisListCard title="판단 근거" items={result.evidence} markerClassName="bg-[#2563eb]" />
+        <AnalysisListCard title="판단 근거" items={result.evidence} markerClassName="bg-[#5f5f5f]" />
       )}
 
       {result.debugSteps && result.debugSteps.length > 0 && (
@@ -2052,7 +2201,7 @@ function AiAnalysisResultView({ result }: { result: AiDebugAnalysis }) {
       )}
 
       {result.missingData && result.missingData.length > 0 && (
-        <AnalysisListCard title="추가로 있으면 좋은 데이터" items={result.missingData} markerClassName="bg-[#64748b]" />
+        <AnalysisListCard title="추가로 있으면 좋은 데이터" items={result.missingData} markerClassName="bg-[#5f5f5f]" />
       )}
     </div>
   );
@@ -2060,7 +2209,7 @@ function AiAnalysisResultView({ result }: { result: AiDebugAnalysis }) {
 
 function AnalysisTextCard({ title, value }: { title: string; value?: string }) {
   return (
-    <div className="min-w-0 border border-border rounded p-3 bg-white">
+    <div className="min-w-0 border border-border rounded p-3 bg-card">
       <div className="text-xs text-muted-foreground">{title}</div>
       <div className="text-sm text-foreground mt-1 break-words [overflow-wrap:anywhere]">
         {value || "제공된 분석이 없습니다."}
@@ -2079,11 +2228,11 @@ function AnalysisListCard({
   markerClassName: string;
 }) {
   return (
-    <div className="border border-[#e2e8f0] bg-[#f8fafc] rounded p-3">
-      <div className="text-xs font-medium text-[#0f172a]">{title}</div>
+    <div className="border border-border bg-muted rounded p-3">
+      <div className="text-xs font-medium text-foreground">{title}</div>
       <div className="mt-2 grid gap-2">
         {items.map((item, index) => (
-          <div key={`${item}-${index}`} className="flex gap-2 text-xs text-[#0f172a]">
+          <div key={`${item}-${index}`} className="flex gap-2 text-xs text-foreground">
             <span className={`mt-1 h-1.5 w-1.5 rounded-full shrink-0 ${markerClassName}`} />
             <span className="min-w-0 break-words [overflow-wrap:anywhere]">{item}</span>
           </div>
@@ -2100,7 +2249,7 @@ function LocalAnalysisFallback({
 }) {
   return (
     <>
-      <div className="rounded border border-[#e2e8f0] bg-[#f8fafc] px-3 py-2 text-xs text-[#64748b]">
+      <div className="rounded border border-border bg-muted px-3 py-2 text-xs text-muted-foreground">
         실제 AI 분석 전에는 로컬 규칙 기반 fallback을 표시합니다.
       </div>
       <div className="grid gap-3 md:grid-cols-2">
@@ -2377,7 +2526,7 @@ function FlowGraphDialog({
           maxHeight: "calc(100vh - 24px)",
         }}
       >
-        <DialogHeader className="px-5 py-3 border-b border-border bg-white">
+        <DialogHeader className="px-5 py-3 border-b border-border bg-card">
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
               <DialogTitle className="flex items-center gap-2">
@@ -2392,7 +2541,7 @@ function FlowGraphDialog({
               <button
                 type="button"
                 onClick={() => setSideCollapsed((current) => !current)}
-                className="flex items-center gap-1.5 rounded border border-[#e2e8f0] bg-white px-2.5 py-1.5 text-xs text-[#475569] hover:border-[#fed7aa] hover:bg-[#fff7ed] hover:text-[#9a3412]"
+                className="flex items-center gap-1.5 rounded border border-border bg-card px-2.5 py-1.5 text-xs text-muted-foreground hover:border-border hover:bg-muted hover:text-foreground"
                 title={sideCollapsed ? "전체 흐름 열기" : "전체 흐름 접기"}
               >
                 {sideCollapsed ? (
@@ -2405,7 +2554,7 @@ function FlowGraphDialog({
               <button
                 type="button"
                 onClick={() => setDetailCollapsed((current) => !current)}
-                className="flex items-center gap-1.5 rounded border border-[#e2e8f0] bg-white px-2.5 py-1.5 text-xs text-[#475569] hover:border-[#fed7aa] hover:bg-[#fff7ed] hover:text-[#9a3412]"
+                className="flex items-center gap-1.5 rounded border border-border bg-card px-2.5 py-1.5 text-xs text-muted-foreground hover:border-border hover:bg-muted hover:text-foreground"
                 title={detailCollapsed ? "Node Detail 열기" : "Node Detail 접기"}
               >
                 {detailCollapsed ? (
@@ -2418,7 +2567,7 @@ function FlowGraphDialog({
               <button
                 type="button"
                 onClick={() => onOpenChange(false)}
-                className="flex items-center gap-1.5 rounded border border-[#fed7aa] bg-[#fff7ed] px-3 py-1.5 text-xs text-[#9a3412] hover:bg-[#ffedd5]"
+                className="flex items-center gap-1.5 rounded border border-border bg-muted px-3 py-1.5 text-xs text-foreground hover:bg-muted"
               >
                 <X className="w-3.5 h-3.5" />
                 닫기
@@ -2448,14 +2597,14 @@ function FlowGraphDialog({
               onPointerUp={stopPan}
               onPointerCancel={stopPan}
               onWheel={handleCanvasWheel}
-              className="flow-canvas-viewport relative overflow-auto bg-[#f8fafc] cursor-grab active:cursor-grabbing select-none"
+              className="flow-canvas-viewport relative overflow-auto bg-muted cursor-grab active:cursor-grabbing select-none"
             >
               <div className="sticky left-3 top-3 z-40 h-0 w-fit">
-                <div className="inline-flex items-center gap-1 rounded border border-[#e2e8f0] bg-white/95 p-1 shadow-sm backdrop-blur">
+                <div className="inline-flex items-center gap-1 rounded border border-border bg-card p-1 shadow-sm backdrop-blur">
                   <button
                     type="button"
                     onClick={zoomOut}
-                    className="flex h-7 w-7 items-center justify-center rounded text-[#475569] hover:bg-[#fff7ed] hover:text-[#9a3412] disabled:opacity-40"
+                    className="flex h-7 w-7 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-40"
                     disabled={canvasZoom <= 0.5}
                     title="축소"
                   >
@@ -2464,7 +2613,7 @@ function FlowGraphDialog({
                   <button
                     type="button"
                     onClick={resetZoom}
-                    className="h-7 min-w-12 rounded px-2 text-[11px] font-medium text-[#334155] hover:bg-[#f8fafc]"
+                    className="h-7 min-w-12 rounded px-2 text-[11px] font-medium text-foreground hover:bg-muted"
                     title="100%로 초기화"
                   >
                     {Math.round(canvasZoom * 100)}%
@@ -2472,7 +2621,7 @@ function FlowGraphDialog({
                   <button
                     type="button"
                     onClick={zoomIn}
-                    className="flex h-7 w-7 items-center justify-center rounded text-[#475569] hover:bg-[#fff7ed] hover:text-[#9a3412] disabled:opacity-40"
+                    className="flex h-7 w-7 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-40"
                     disabled={canvasZoom >= 1.8}
                     title="확대"
                   >
@@ -2509,7 +2658,7 @@ function FlowGraphDialog({
                       markerHeight="6"
                       orient="auto-start-reverse"
                     >
-                      <path d="M 0 0 L 10 5 L 0 10 z" fill="#94a3b8" />
+                      <path d="M 0 0 L 10 5 L 0 10 z" fill="#8a8a8a" />
                     </marker>
                     <marker
                       id="flow-arrow-active"
@@ -2520,7 +2669,7 @@ function FlowGraphDialog({
                       markerHeight="6"
                       orient="auto-start-reverse"
                     >
-                      <path d="M 0 0 L 10 5 L 0 10 z" fill="#fb923c" />
+                      <path d="M 0 0 L 10 5 L 0 10 z" fill="#f36910" />
                     </marker>
                   </defs>
                   {graphItems.slice(0, -1).map((item, index) => {
@@ -2596,7 +2745,7 @@ function FlowGraphDialog({
                   onPointerDown={(event) => startLayoutResize("side", event)}
                 />
 
-                <div className="border-l border-border bg-white overflow-auto p-4">
+                <div className="border-l border-border bg-card overflow-auto p-4">
                   <div>
                     <div className="flex items-center justify-between gap-2">
                       <div>
@@ -2608,7 +2757,7 @@ function FlowGraphDialog({
                       <button
                         type="button"
                         onClick={() => setSideCollapsed(true)}
-                        className="rounded border border-[#e2e8f0] bg-white p-1.5 text-[#64748b] hover:border-[#fed7aa] hover:bg-[#fff7ed] hover:text-[#9a3412]"
+                        className="rounded border border-border bg-card p-1.5 text-muted-foreground hover:border-border hover:bg-muted hover:text-foreground"
                         title="전체 흐름 접기"
                       >
                         <PanelRightClose className="w-3.5 h-3.5" />
@@ -2627,8 +2776,8 @@ function FlowGraphDialog({
                               onClick={() => selectAndFocusNode(item.id)}
                               className={`relative w-full text-left rounded border px-3 py-2 transition-colors ${
                                 selectedItem?.id === item.id
-                                  ? "border-[#f36910] bg-[#fff7ed]"
-                                  : "border-border bg-white hover:bg-[#f8fafc]"
+                                  ? "border-[#f36910] bg-muted"
+                                  : "border-border bg-card hover:bg-muted"
                               }`}
                             >
                               {searchMatched && (
@@ -2714,7 +2863,7 @@ function FlowGraphNode({
         selected
           ? "ring-2 ring-[#f36910] shadow-lg scale-[1.02] z-20"
           : adjacent
-            ? "ring-1 ring-[#fed7aa] z-10"
+            ? "ring-1 ring-border z-10"
             : "hover:shadow-md"
       } ${
         dimmed ? "opacity-35 blur-[0.3px] saturate-50" : "opacity-100 blur-0 saturate-100"
@@ -2763,10 +2912,10 @@ function ResizeDivider({
         aria-orientation="vertical"
         title={title}
         onPointerDown={onPointerDown}
-        className="group relative cursor-col-resize bg-[#f8fafc] hover:bg-[#fff7ed] transition-colors"
+        className="group relative cursor-col-resize bg-muted hover:bg-muted transition-colors"
       >
-        <div className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-[#cbd5e1] group-hover:w-1 group-hover:bg-[#f36910] transition-all" />
-        <div className="absolute top-1/2 left-1/2 h-12 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#cbd5e1] opacity-0 group-hover:opacity-100 group-hover:bg-[#f36910] transition-opacity" />
+        <div className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-border group-hover:w-1 group-hover:bg-[#f36910] transition-all" />
+        <div className="absolute top-1/2 left-1/2 h-12 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-border opacity-0 group-hover:opacity-100 group-hover:bg-[#f36910] transition-opacity" />
       </div>
     );
   }
@@ -2777,10 +2926,10 @@ function ResizeDivider({
       aria-orientation="horizontal"
       title={title}
       onPointerDown={onPointerDown}
-      className="group relative h-2 cursor-row-resize bg-[#f8fafc] hover:bg-[#fff7ed] transition-colors"
+      className="group relative h-2 cursor-row-resize bg-muted hover:bg-muted transition-colors"
     >
-      <div className="absolute left-0 right-0 top-1/2 h-px -translate-y-1/2 bg-[#cbd5e1] group-hover:h-1 group-hover:bg-[#f36910] transition-all" />
-      <div className="absolute left-1/2 top-1/2 h-1.5 w-12 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#cbd5e1] opacity-0 group-hover:opacity-100 group-hover:bg-[#f36910] transition-opacity" />
+      <div className="absolute left-0 right-0 top-1/2 h-px -translate-y-1/2 bg-border group-hover:h-1 group-hover:bg-[#f36910] transition-all" />
+      <div className="absolute left-1/2 top-1/2 h-1.5 w-12 -translate-x-1/2 -translate-y-1/2 rounded-full bg-border opacity-0 group-hover:opacity-100 group-hover:bg-[#f36910] transition-opacity" />
     </div>
   );
 }
@@ -2795,7 +2944,7 @@ function FlowNodeDetailPanel({
   onCollapse: () => void;
 }) {
   return (
-    <div className="border-t border-border bg-white p-4 overflow-auto" style={{ height }}>
+    <div className="border-t border-border bg-card p-4 overflow-auto" style={{ height }}>
       <div className="flex items-center justify-between gap-3">
         <div>
           <div className="text-sm font-medium text-foreground">Node Detail</div>
@@ -2805,14 +2954,14 @@ function FlowNodeDetailPanel({
         </div>
         <div className="flex items-center gap-2">
           {selectedItem && (
-            <span className="px-2 py-1 rounded bg-[#fff7ed] border border-[#fed7aa] text-[11px] text-[#9a3412] uppercase">
+            <span className="px-2 py-1 rounded bg-muted border border-border text-[11px] text-foreground uppercase">
               {getFlowVisual(selectedItem).label}
             </span>
           )}
           <button
             type="button"
             onClick={onCollapse}
-            className="rounded border border-[#e2e8f0] bg-white p-1.5 text-[#64748b] hover:border-[#fed7aa] hover:bg-[#fff7ed] hover:text-[#9a3412]"
+            className="rounded border border-border bg-card p-1.5 text-muted-foreground hover:border-border hover:bg-muted hover:text-foreground"
             title="Node Detail 접기"
           >
             <PanelBottomClose className="w-3.5 h-3.5" />
@@ -2822,7 +2971,7 @@ function FlowNodeDetailPanel({
 
       {selectedItem ? (
         <div className="mt-4 grid grid-cols-[minmax(240px,340px)_1fr] gap-4 items-start">
-          <div className="border border-border rounded p-3 bg-[#f8fafc]">
+          <div className="border border-border rounded p-3 bg-muted">
             <div className="text-[11px] uppercase" style={{ color: getFlowVisual(selectedItem).accent }}>
               {getFlowVisual(selectedItem).label}
             </div>
@@ -2877,9 +3026,9 @@ function FlowNodeDetailPanel({
 
 function ReportMetric({ label, value }: { label: string; value: number }) {
   return (
-    <div className="border border-[#e2e8f0] bg-white rounded p-3">
-      <div className="text-[11px] text-[#64748b]">{label}</div>
-      <div className="text-lg font-medium text-[#0f172a] mt-1">{value}</div>
+    <div className="border border-border bg-card rounded p-3">
+      <div className="text-[11px] text-muted-foreground">{label}</div>
+      <div className="text-lg font-medium text-foreground mt-1">{value}</div>
     </div>
   );
 }
@@ -2894,15 +3043,15 @@ function KeyValuePreview({
   const entries = Object.entries(values);
 
   if (entries.length === 0) {
-    return <div className="p-3 text-xs text-[#475569]">{emptyText}</div>;
+    return <div className="p-3 text-xs text-muted-foreground">{emptyText}</div>;
   }
 
   return (
-    <div className="divide-y divide-[#fee2c0]">
+    <div className="divide-y divide-border">
       {entries.slice(0, 12).map(([name, value]) => (
         <div key={name} className="grid grid-cols-[110px_1fr] gap-2 px-3 py-2">
-          <div className="text-xs font-mono text-[#9a3412] truncate">{name}</div>
-          <div className="text-xs text-[#0f172a] break-all">
+          <div className="text-xs font-mono text-foreground truncate">{name}</div>
+          <div className="text-xs text-foreground break-all">
             {truncateText(formatValue(value), 160)}
           </div>
         </div>
@@ -2918,11 +3067,11 @@ function TimelineInlineDetail({ event }: { event: TraceTimelineEvent }) {
     const targetGroups = getDomMutationTargetGroups(samples);
 
     return (
-      <div className="border border-[#bae6fd] rounded bg-[#f0f9ff] p-3">
+      <div className="border border-[#bae6fd] rounded bg-[#f0f9ff] p-3 dark:border-[#7295a3] dark:bg-[#51616a]">
         <div className="flex items-center justify-between gap-2">
           <div>
-            <div className="text-xs font-medium text-[#075985]">DOM 변경 요약</div>
-            <div className="text-[11px] text-[#64748b] mt-0.5">{event.timestamp}</div>
+            <div className="text-xs font-medium text-[#075985] dark:text-[#dff7ff]">DOM 변경 요약</div>
+            <div className="text-[11px] text-muted-foreground mt-0.5">{event.timestamp}</div>
           </div>
           <div className="flex flex-wrap justify-end gap-1.5">
             {badges.map((badge) => (
@@ -2937,16 +3086,16 @@ function TimelineInlineDetail({ event }: { event: TraceTimelineEvent }) {
         </div>
 
         {event.domMutation.trigger && (
-          <div className="mt-3 rounded border border-[#bfdbfe] bg-white p-2">
-            <div className="text-[11px] font-medium text-[#075985]">추정 트리거</div>
-            <div className="mt-1 text-xs text-[#0f172a] break-words">
+          <div className="mt-3 rounded border border-[#bfdbfe] bg-white p-2 dark:border-[#7295a3] dark:bg-[#5a6870]">
+            <div className="text-[11px] font-medium text-[#075985] dark:text-[#dff7ff]">추정 트리거</div>
+            <div className="mt-1 text-xs text-foreground break-words">
               {String(event.domMutation.trigger.actionType || "user-action")}
               {event.domMutation.trigger.label
                 ? ` · ${String(event.domMutation.trigger.label)}`
                 : ""}
             </div>
             {event.domMutation.trigger.target && (
-              <div className="mt-1 text-[11px] text-[#64748b] break-all">
+              <div className="mt-1 text-[11px] text-muted-foreground break-all">
                 {String(event.domMutation.trigger.target)}
               </div>
             )}
@@ -2954,13 +3103,13 @@ function TimelineInlineDetail({ event }: { event: TraceTimelineEvent }) {
         )}
 
         {targetGroups.length > 0 && (
-          <div className="mt-3 rounded border border-[#dbeafe] bg-white p-2">
-            <div className="text-[11px] font-medium text-[#075985]">주요 변경 영역</div>
+          <div className="mt-3 rounded border border-[#bfdbfe] bg-white p-2 dark:border-[#7295a3] dark:bg-[#5a6870]">
+            <div className="text-[11px] font-medium text-[#075985] dark:text-[#dff7ff]">주요 변경 영역</div>
             <div className="mt-2 grid gap-1.5">
               {targetGroups.map((group) => (
                 <div key={group.target} className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-2 text-xs">
-                  <div className="min-w-0 break-all text-[#0f172a] [overflow-wrap:anywhere]">{group.target}</div>
-                  <div className="shrink-0 text-[11px] text-[#64748b]">
+                  <div className="min-w-0 break-all text-foreground [overflow-wrap:anywhere]">{group.target}</div>
+                  <div className="shrink-0 text-[11px] text-muted-foreground">
                     {group.types.join(", ")} · {group.count}
                   </div>
                 </div>
@@ -2975,18 +3124,18 @@ function TimelineInlineDetail({ event }: { event: TraceTimelineEvent }) {
               const nodes = Array.isArray(sample.nodes) ? sample.nodes : [];
 
               return (
-                <div key={`${String(sample.type)}-${index}`} className="min-w-0 overflow-hidden rounded border border-[#dbeafe] bg-white p-2">
+                <div key={`${String(sample.type)}-${index}`} className="min-w-0 overflow-hidden rounded border border-[#dbeafe] bg-white p-2 dark:border-[#7295a3] dark:bg-[#5a6870]">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="rounded bg-[#e0f2fe] px-2 py-0.5 text-[10px] text-[#0369a1]">
+                    <span className="rounded bg-[#e0f2fe] px-2 py-0.5 text-[10px] text-[#0369a1] dark:bg-[#61717a] dark:text-[#dff7ff]">
                       {formatDomMutationType(sample.type)}
                     </span>
                     {sample.attributeName && (
-                      <span className="text-[10px] text-[#64748b]">
+                      <span className="text-[10px] text-muted-foreground">
                         {String(sample.attributeName)}
                       </span>
                     )}
                   </div>
-                  <div className="mt-1 min-w-0 break-all text-xs text-[#0f172a] [overflow-wrap:anywhere]">
+                  <div className="mt-1 min-w-0 break-all text-xs text-foreground [overflow-wrap:anywhere]">
                     {String(sample.target || "unknown target")}
                   </div>
                   {nodes.length > 0 && (
@@ -2997,13 +3146,13 @@ function TimelineInlineDetail({ event }: { event: TraceTimelineEvent }) {
                         return (
                           <div
                             key={`${nodeSummary.selector}-${nodeIndex}`}
-                            className="min-w-0 overflow-hidden rounded bg-[#f8fafc] px-2 py-1"
+                            className="min-w-0 overflow-hidden rounded bg-[#f8fafc] px-2 py-1 dark:bg-[#51616a]"
                           >
-                            <div className="min-w-0 break-all text-[11px] text-[#475569] [overflow-wrap:anywhere]">
+                            <div className="min-w-0 break-all text-[11px] text-muted-foreground [overflow-wrap:anywhere]">
                               {nodeSummary.selector}
                             </div>
                             {nodeSummary.preview && (
-                              <div className="mt-0.5 max-h-16 min-w-0 overflow-hidden break-all text-[11px] text-[#0f172a] [overflow-wrap:anywhere]">
+                              <div className="mt-0.5 max-h-16 min-w-0 overflow-hidden break-all text-[11px] text-foreground [overflow-wrap:anywhere]">
                                 {truncateText(nodeSummary.preview, 180)}
                               </div>
                             )}
@@ -3014,15 +3163,15 @@ function TimelineInlineDetail({ event }: { event: TraceTimelineEvent }) {
                   )}
                   {("oldValue" in sample || "newValue" in sample) && (
                     <div className="mt-2 grid gap-1 text-[11px]">
-                      <div className="min-w-0 overflow-hidden rounded bg-[#f8fafc] px-2 py-1 text-[#64748b]">
+                      <div className="min-w-0 overflow-hidden rounded bg-[#f8fafc] px-2 py-1 text-muted-foreground dark:bg-[#51616a]">
                         이전:{" "}
-                        <span className="break-all text-[#0f172a] [overflow-wrap:anywhere]">
+                        <span className="break-all text-foreground [overflow-wrap:anywhere]">
                           {formatLongDomValue(sample.oldValue, 140)}
                         </span>
                       </div>
-                      <div className="min-w-0 overflow-hidden rounded bg-[#eff6ff] px-2 py-1 text-[#1d4ed8]">
+                      <div className="min-w-0 overflow-hidden rounded bg-[#eff6ff] px-2 py-1 text-[#1d4ed8] dark:bg-[#51616a] dark:text-[#dff7ff]">
                         이후:{" "}
-                        <span className="break-all text-[#0f172a] [overflow-wrap:anywhere]">
+                        <span className="break-all text-foreground [overflow-wrap:anywhere]">
                           {formatLongDomValue(sample.newValue, 140)}
                         </span>
                       </div>
@@ -3035,7 +3184,7 @@ function TimelineInlineDetail({ event }: { event: TraceTimelineEvent }) {
         )}
 
         {event.domMutation.pageUrl && (
-          <div className="mt-3 text-[11px] text-[#64748b] break-all">
+          <div className="mt-3 text-[11px] text-muted-foreground break-all">
             {event.domMutation.pageUrl}
           </div>
         )}
@@ -3149,26 +3298,26 @@ function LogpointControls({
   };
 
   return (
-    <div className="border border-[#cbd5e1] rounded bg-[#f8fafc] text-[#111827] p-3 space-y-3">
+    <div className="border border-border rounded bg-muted text-foreground p-3 space-y-3">
       <div>
-        <div className="text-sm font-medium text-[#0f172a]">선택 구간 Logpoint</div>
-        <div className="text-xs text-[#475569] mt-1">
+        <div className="text-sm font-medium text-foreground">선택 구간 Logpoint</div>
+        <div className="text-xs text-muted-foreground mt-1">
           아래 순서대로 스크립트와 라인을 선택한 뒤 Trace를 시작하세요.
         </div>
       </div>
 
       <div className="grid grid-cols-3 gap-2 text-[11px]">
-        <div className="rounded border border-[#dbe3ee] bg-white p-2">
+        <div className="rounded border border-border bg-card p-2">
           <div className="font-medium text-[#f36910]">1. 스크립트 선택</div>
-          <div className="text-[#64748b] mt-1">목록에서 실행 파일을 클릭</div>
+          <div className="text-muted-foreground mt-1">목록에서 실행 파일을 클릭</div>
         </div>
-        <div className="rounded border border-[#dbe3ee] bg-white p-2">
+        <div className="rounded border border-border bg-card p-2">
           <div className="font-medium text-[#f36910]">2. 라인 지정</div>
-          <div className="text-[#64748b] mt-1">시작/종료 라인 입력</div>
+          <div className="text-muted-foreground mt-1">시작/종료 라인 입력</div>
         </div>
-        <div className="rounded border border-[#dbe3ee] bg-white p-2">
+        <div className="rounded border border-border bg-card p-2">
           <div className="font-medium text-[#f36910]">3. 적용 후 실행</div>
-          <div className="text-[#64748b] mt-1">Start Trace 후 페이지 조작</div>
+          <div className="text-muted-foreground mt-1">Start Trace 후 페이지 조작</div>
         </div>
       </div>
 
@@ -3177,11 +3326,11 @@ function LogpointControls({
           value={scriptFilter}
           onChange={(event) => setScriptFilter(event.target.value)}
           placeholder="스크립트 검색: LoginForm, auth, /assets/index"
-          className="w-full bg-white border border-[#cbd5e1] rounded px-2 py-1.5 text-xs text-[#111827] placeholder:text-[#64748b] outline-none focus:border-[#f36910] focus:ring-2 focus:ring-[#f36910]/15"
+          className="w-full bg-card border border-border rounded px-2 py-1.5 text-xs text-foreground placeholder:text-muted-foreground outline-none focus:border-[#f36910] focus:ring-2 focus:ring-[#f36910]/15"
         />
 
-        <div className="border border-[#cbd5e1] rounded overflow-hidden bg-white">
-          <div className="px-2 py-1.5 border-b border-[#fed7aa] bg-[#fff7ed] text-[11px] text-[#7c2d12] flex items-center justify-between gap-2">
+        <div className="border border-border rounded overflow-hidden bg-card">
+          <div className="px-2 py-1.5 border-b border-border bg-muted text-[11px] text-muted-foreground flex items-center justify-between gap-2">
             <span>감지된 스크립트 목록</span>
             <span>{filteredScripts.length}개 표시</span>
           </div>
@@ -3197,28 +3346,28 @@ function LogpointControls({
                     key={`${script.scriptId}-${script.url}`}
                     type="button"
                     onClick={() => selectScript(script)}
-                    className={`w-full px-2 py-2 text-left border-b border-[#e2e8f0] last:border-b-0 ${
+                    className={`w-full px-2 py-2 text-left border-b border-border last:border-b-0 ${
                       selected
-                        ? "bg-[#ffedd5]"
-                        : "bg-white hover:bg-[#f1f5f9]"
+                        ? "bg-muted"
+                        : "bg-card hover:bg-muted"
                     }`}
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <span className="text-xs text-[#0f172a] truncate font-medium">
+                      <span className="text-xs text-foreground truncate font-medium">
                         {getScriptLabel(script.url)}
                       </span>
-                      <span className="text-[10px] text-[#475569] shrink-0">
+                      <span className="text-[10px] text-muted-foreground shrink-0">
                         {start}-{end}
                       </span>
                     </div>
-                    <div className="text-[10px] text-[#64748b] truncate mt-0.5">
+                    <div className="text-[10px] text-muted-foreground truncate mt-0.5">
                       {script.url}
                     </div>
                   </button>
                 );
               })
             ) : (
-              <div className="px-2 py-3 text-xs text-[#64748b] text-center">
+              <div className="px-2 py-3 text-xs text-muted-foreground text-center">
                 감지된 스크립트가 없거나 검색 결과가 없습니다.
               </div>
             )}
@@ -3226,12 +3375,12 @@ function LogpointControls({
         </div>
 
         {url ? (
-          <div className="rounded border border-[#fed7aa] bg-[#fff7ed] p-2">
+          <div className="rounded border border-border bg-muted p-2">
             <div className="text-[11px] font-medium text-[#f36910] mb-1">선택된 스크립트</div>
-            <div className="text-[11px] text-[#1e293b] break-all">{url}</div>
+            <div className="text-[11px] text-foreground break-all">{url}</div>
           </div>
         ) : (
-          <div className="rounded border border-[#fde68a] bg-[#fffbeb] p-2 text-[11px] text-[#92400e]">
+          <div className="rounded border border-border bg-muted p-2 text-[11px] text-muted-foreground">
             아직 스크립트가 선택되지 않았습니다. 위 목록에서 항목을 먼저 클릭하세요.
           </div>
         )}
@@ -3243,7 +3392,7 @@ function LogpointControls({
             setUrl(event.target.value);
           }}
           placeholder="선택된 script URL"
-          className="w-full bg-white border border-[#cbd5e1] rounded px-2 py-1.5 text-xs text-[#111827] placeholder:text-[#64748b] outline-none focus:border-[#f36910] focus:ring-2 focus:ring-[#f36910]/15"
+          className="w-full bg-card border border-border rounded px-2 py-1.5 text-xs text-foreground placeholder:text-muted-foreground outline-none focus:border-[#f36910] focus:ring-2 focus:ring-[#f36910]/15"
         />
         <div className="grid grid-cols-[1fr_1fr_auto] gap-2">
           <input
@@ -3251,27 +3400,27 @@ function LogpointControls({
             onChange={(event) => setStartLine(event.target.value)}
             inputMode="numeric"
             placeholder="시작 라인"
-            className="min-w-0 bg-white border border-[#cbd5e1] rounded px-2 py-1.5 text-xs text-[#111827] placeholder:text-[#64748b] outline-none focus:border-[#f36910] focus:ring-2 focus:ring-[#f36910]/15"
+            className="min-w-0 bg-card border border-border rounded px-2 py-1.5 text-xs text-foreground placeholder:text-muted-foreground outline-none focus:border-[#f36910] focus:ring-2 focus:ring-[#f36910]/15"
           />
           <input
             value={endLine}
             onChange={(event) => setEndLine(event.target.value)}
             inputMode="numeric"
             placeholder="종료 라인"
-            className="min-w-0 bg-white border border-[#cbd5e1] rounded px-2 py-1.5 text-xs text-[#111827] placeholder:text-[#64748b] outline-none focus:border-[#f36910] focus:ring-2 focus:ring-[#f36910]/15"
+            className="min-w-0 bg-card border border-border rounded px-2 py-1.5 text-xs text-foreground placeholder:text-muted-foreground outline-none focus:border-[#f36910] focus:ring-2 focus:ring-[#f36910]/15"
           />
           <button
             type="button"
             onClick={apply}
             disabled={!url.trim()}
-            className="px-3 py-1.5 rounded bg-[#f36910] text-white text-xs hover:bg-[#d85a0d] disabled:bg-[#94a3b8] disabled:cursor-not-allowed"
+            className="px-3 py-1.5 rounded bg-[#f36910] text-white text-xs hover:bg-[#d85a0d] disabled:bg-[#777777] disabled:cursor-not-allowed"
           >
             적용
           </button>
         </div>
 
-        <div className="border border-[#cbd5e1] rounded overflow-hidden bg-[#0f172a]">
-          <div className="px-2 py-1.5 border-b border-[#334155] bg-[#1e293b] text-[11px] text-[#e2e8f0] flex items-center justify-between gap-2">
+        <div className="border border-border rounded overflow-hidden bg-[#3f3f3f]">
+          <div className="px-2 py-1.5 border-b border-border bg-card text-[11px] text-foreground flex items-center justify-between gap-2">
             <span>코드 라인 선택</span>
             <span>라인을 클릭하면 시작/종료 범위가 지정됩니다</span>
           </div>
@@ -3288,13 +3437,13 @@ function LogpointControls({
                     type="button"
                     onClick={() => selectLine(lineNumber)}
                     className={`w-full grid grid-cols-[56px_1fr] text-left ${
-                      selected ? "bg-[#f36910]" : "bg-transparent hover:bg-[#1e293b]"
+                      selected ? "bg-[#f36910]" : "bg-transparent hover:bg-card"
                     }`}
                   >
-                    <span className="px-2 py-0.5 text-right text-[#94a3b8] select-none border-r border-[#334155]">
+                    <span className="px-2 py-0.5 text-right text-muted-foreground select-none border-r border-border">
                       {lineNumber}
                     </span>
-                    <span className="px-2 py-0.5 text-[#e2e8f0] whitespace-pre overflow-visible">
+                    <span className="px-2 py-0.5 text-foreground whitespace-pre overflow-visible">
                       {line || " "}
                     </span>
                   </button>
@@ -3302,14 +3451,14 @@ function LogpointControls({
               })}
             </div>
           ) : (
-            <div className="p-4 text-xs text-[#cbd5e1] text-center">
+            <div className="p-4 text-xs text-muted-foreground text-center">
               {sourceStatus || "스크립트를 선택하면 코드가 여기에 표시됩니다."}
             </div>
           )}
         </div>
       </div>
 
-      <div className="flex items-center justify-between gap-2 text-[11px] text-[#475569]">
+      <div className="flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
         <span>{scripts.length} scripts detected</span>
         {status && <span className="text-right break-words text-[#f36910]">{status}</span>}
       </div>
@@ -3353,51 +3502,51 @@ export function AnalysisPanel({
   }, [trace.status, trace.errors.length]);
 
   return (
-    <div className="h-full flex flex-col bg-background">
-      <div className="grid grid-cols-2 gap-2 p-2 border-b border-border bg-[#f8fafc]">
+    <div className="h-full flex flex-col bg-background dark:bg-background">
+      <div className="grid grid-cols-2 gap-2 p-2 border-b border-border bg-muted dark:border-border dark:bg-[#3f3f3f]">
         <button
           type="button"
           onClick={() => setPanelTab("flow")}
           className={`rounded border px-3 py-2.5 text-left transition-colors ${
             panelTab === "flow"
-              ? "border-[#f36910] bg-[#fff7ed] shadow-sm"
-              : "border-[#e2e8f0] bg-white hover:border-[#fed7aa] hover:bg-[#fff7ed]/40"
+              ? "border-[#f36910] bg-[#fff7ed] shadow-sm dark:border-[#ad8460] dark:bg-[#5f564e]"
+              : "border-border bg-card hover:border-border hover:bg-muted/40 dark:border-border dark:bg-card dark:hover:border-border dark:hover:bg-muted"
           }`}
         >
           <div className="flex items-center justify-between gap-2">
             <span
               className={`flex items-center gap-1.5 text-sm font-medium ${
-                panelTab === "flow" ? "text-[#c2410c]" : "text-[#0f172a]"
+                panelTab === "flow" ? "text-[#c2410c] dark:text-[#ffe5cc]" : "text-foreground dark:text-foreground"
               }`}
             >
               <GitBranch className="w-4 h-4" />
               Flow
             </span>
-            <span className="text-[11px] text-[#9a3412]">{flowStory.length}</span>
+            <span className={`text-[11px] ${panelTab === "flow" ? "text-[#9a3412] dark:text-[#ffe5cc]" : "text-foreground dark:text-muted-foreground"}`}>{flowStory.length}</span>
           </div>
-          <div className="text-[11px] text-[#64748b] mt-1">실행 흐름과 노드</div>
+          <div className="text-[11px] text-muted-foreground mt-1 dark:text-muted-foreground">실행 흐름과 노드</div>
         </button>
         <button
           type="button"
           onClick={() => setPanelTab("analysis")}
           className={`rounded border px-3 py-2.5 text-left transition-colors ${
             panelTab === "analysis"
-              ? "border-[#f36910] bg-[#fff7ed] shadow-sm"
-              : "border-[#e2e8f0] bg-white hover:border-[#fed7aa] hover:bg-[#fff7ed]/40"
+              ? "border-[#f36910] bg-[#fff7ed] shadow-sm dark:border-[#ad8460] dark:bg-[#5f564e]"
+              : "border-border bg-card hover:border-border hover:bg-muted/40 dark:border-border dark:bg-card dark:hover:border-border dark:hover:bg-muted"
           }`}
         >
           <div className="flex items-center justify-between gap-2">
             <span
               className={`flex items-center gap-1.5 text-sm font-medium ${
-                panelTab === "analysis" ? "text-[#c2410c]" : "text-[#0f172a]"
+                panelTab === "analysis" ? "text-[#c2410c] dark:text-[#ffe5cc]" : "text-foreground dark:text-foreground"
               }`}
             >
               <Sparkles className="w-4 h-4" />
               분석
             </span>
-            <span className="text-[11px] text-[#9a3412]">{trace.errors.length}</span>
+            <span className={`text-[11px] ${panelTab === "analysis" ? "text-[#9a3412] dark:text-[#ffe5cc]" : "text-foreground dark:text-muted-foreground"}`}>{trace.errors.length}</span>
           </div>
-          <div className="text-[11px] text-[#64748b] mt-1">리포트와 원인 후보</div>
+          <div className="text-[11px] text-muted-foreground mt-1 dark:text-muted-foreground">리포트와 원인 후보</div>
         </button>
       </div>
 
@@ -3459,10 +3608,10 @@ export function AnalysisPanel({
           </div>
         ) : (
           <div className="h-full overflow-auto p-4 space-y-4">
-            <div className="flex items-center justify-between gap-3 rounded border border-[#e2e8f0] bg-white p-3">
+            <div className="flex items-center justify-between gap-3 rounded border border-border bg-card p-3 dark:border-border dark:bg-card">
               <div>
-                <div className="text-sm font-medium text-[#0f172a]">분석 도구</div>
-                <div className="text-xs text-[#64748b] mt-1">
+                <div className="text-sm font-medium text-foreground dark:text-foreground">분석 도구</div>
+                <div className="text-xs text-muted-foreground mt-1 dark:text-muted-foreground">
                   에러 원인 후보를 보고 필요하면 전체 Flow 도식을 별도로 확인합니다.
                 </div>
               </div>
@@ -3479,9 +3628,9 @@ export function AnalysisPanel({
             {trace.status === "completed" ? (
               <TraceReport trace={trace} story={flowStory} />
             ) : (
-              <div className="border border-[#e2e8f0] bg-[#f8fafc] rounded p-4">
-                <div className="text-sm font-medium text-[#0f172a]">분석 대기 중</div>
-                <div className="text-xs text-[#64748b] mt-1">
+              <div className="border border-border bg-muted rounded p-4 dark:border-border dark:bg-card">
+                <div className="text-sm font-medium text-foreground dark:text-foreground">분석 대기 중</div>
+                <div className="text-xs text-muted-foreground mt-1 dark:text-muted-foreground">
                   Trace를 Stop하면 도식화 리포트와 원인 후보가 여기에 표시됩니다.
                 </div>
               </div>

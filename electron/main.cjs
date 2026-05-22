@@ -693,7 +693,7 @@ function createWindow() {
     height: 960,
     minWidth: 1100,
     minHeight: 720,
-    title: "AI Flow Debug Agent UI",
+    title: "AI Debugging Browser",
     backgroundColor: "#ffffff",
     webPreferences: {
       preload: path.join(__dirname, "preload.cjs"),

@@ -343,17 +343,17 @@ export function BrowserView({
   }, [isElectron, normalizedUrl, webviewReady]);
 
   return (
-    <div className="h-full flex flex-col bg-white">
+    <div className="h-full flex flex-col bg-background dark:bg-[#444444]">
       {/* Browser Controls */}
       <form
         onSubmit={navigateToDraftUrl}
-        className="flex items-center gap-2 px-3 py-2 border-b border-border"
+        className="flex items-center gap-2 border-b border-border bg-muted px-3 py-2 dark:border-border dark:bg-[#3f3f3f]"
       >
         <button
           type="button"
           onClick={goBack}
           disabled={!canGoBack}
-          className="p-1.5 hover:bg-accent rounded transition-colors disabled:opacity-40"
+          className="rounded p-1.5 transition-colors hover:bg-muted disabled:opacity-40 dark:hover:bg-muted"
         >
           <ArrowLeft className="w-4 h-4 text-muted-foreground" />
         </button>
@@ -361,21 +361,21 @@ export function BrowserView({
           type="button"
           onClick={goForward}
           disabled={!canGoForward}
-          className="p-1.5 hover:bg-accent rounded transition-colors disabled:opacity-40"
+          className="rounded p-1.5 transition-colors hover:bg-muted disabled:opacity-40 dark:hover:bg-muted"
         >
           <ArrowRight className="w-4 h-4 text-muted-foreground" />
         </button>
         <button
           type="button"
           onClick={reloadPage}
-          className="p-1.5 hover:bg-accent rounded transition-colors"
+          className="rounded p-1.5 transition-colors hover:bg-muted dark:hover:bg-muted"
         >
           <RefreshCw className={`w-4 h-4 text-muted-foreground ${isLoading ? "animate-spin" : ""}`} />
         </button>
         <button
           type="button"
           onClick={goHome}
-          className="p-1.5 hover:bg-accent rounded transition-colors"
+          className="rounded p-1.5 transition-colors hover:bg-muted dark:hover:bg-muted"
         >
           <Home className="w-4 h-4 text-muted-foreground" />
         </button>
@@ -383,7 +383,7 @@ export function BrowserView({
           type="text"
           value={draftUrl}
           onChange={(event) => setDraftUrl(event.target.value)}
-          className="flex-1 px-3 py-1.5 bg-white border border-border rounded text-xs text-foreground focus:outline-none focus:border-[var(--color-electric-blue)] focus:ring-2 focus:ring-[var(--color-electric-blue)]/15"
+          className="flex-1 rounded border border-border bg-card px-3 py-1.5 text-xs text-foreground shadow-sm focus:border-[var(--color-electric-blue)] focus:outline-none focus:ring-2 focus:ring-[var(--color-electric-blue)]/15 dark:border-border dark:bg-card dark:text-foreground"
           placeholder="https://ims.hwgeneralins.com/general/jsp/smartScanner.jsp"
         />
         <button
@@ -395,27 +395,27 @@ export function BrowserView({
       </form>
 
       {/* Browser Content */}
-      <div className="flex-1 bg-white relative overflow-hidden">
+      <div className="relative flex-1 overflow-hidden bg-background dark:bg-[#444444]">
         {isElectron ? (
           <webview
             ref={webviewRef}
             src={initialWebviewUrlRef.current}
-            className="absolute inset-0 w-full h-full"
+            className="absolute inset-2 h-[calc(100%-1rem)] w-[calc(100%-1rem)] border border-border bg-card shadow-sm dark:border-border"
             allowpopups="true"
             partition="persist:debug-agent-target"
             preload={targetPreloadPath}
           />
         ) : (
-          <div className="absolute inset-0 flex items-center justify-center bg-gray-50 p-8">
+          <div className="absolute inset-0 flex items-center justify-center bg-background p-8">
             <div className="max-w-md text-center">
-              <h1 className="text-2xl font-semibold text-gray-900 mb-3">
+              <h1 className="text-2xl font-semibold text-foreground mb-3">
                 Electron webview is required
               </h1>
-              <p className="text-sm text-gray-600 leading-6">
+              <p className="text-sm text-muted-foreground leading-6">
                 External sites like Naver often block iframe embedding in a normal browser.
                 Run the Electron test environment to load {normalizedUrl} inside the app.
               </p>
-              <div className="mt-5 rounded border border-gray-200 bg-white px-3 py-2 text-sm font-mono text-gray-700">
+              <div className="mt-5 rounded border border-border bg-card px-3 py-2 text-sm font-mono text-muted-foreground">
                 npm run electron:dev
               </div>
             </div>
@@ -425,7 +425,7 @@ export function BrowserView({
         {/* Recording Overlay */}
         {isRecording && (
           <div className="absolute top-4 right-4 flex items-center gap-2 px-3 py-1.5 bg-red-500 text-white rounded-full text-xs font-medium shadow-lg">
-            <span className="w-2 h-2 bg-white rounded-full animate-pulse" />
+            <span className="w-2 h-2 bg-card rounded-full animate-pulse" />
             Recording
           </div>
         )}

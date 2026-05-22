@@ -23,14 +23,14 @@ export function URLBar({ url, isRecording, onUrlChange, onToggleRecording }: URL
   return (
     <form
       onSubmit={handleSubmit}
-      className="flex items-center gap-3 px-4 py-3 bg-white border-b border-border"
+      className="flex items-center gap-3 px-4 py-3 bg-card border-b border-border"
     >
       <Globe className="w-4 h-4 text-muted-foreground" />
       <input
         type="text"
         value={draftUrl}
         onChange={(e) => setDraftUrl(e.target.value)}
-        className="flex-1 bg-white px-3 py-1.5 rounded border border-border text-sm text-foreground focus:outline-none focus:border-[var(--color-electric-blue)] focus:ring-2 focus:ring-[var(--color-electric-blue)]/15"
+        className="flex-1 bg-card px-3 py-1.5 rounded border border-border text-sm text-foreground focus:outline-none focus:border-[var(--color-electric-blue)] focus:ring-2 focus:ring-[var(--color-electric-blue)]/15"
         placeholder="Enter web service URL..."
       />
       <button

@@ -18,8 +18,8 @@ export function JSONViewer({ data, title }: JSONViewerProps) {
   return (
     <div className="border border-border rounded-lg overflow-hidden">
       {title && (
-        <div className="flex items-center justify-between px-3 py-2 bg-[#fff7ed] border-b border-[#fed7aa]">
-          <span className="text-xs text-[#9a3412]">{title}</span>
+        <div className="flex items-center justify-between px-3 py-2 bg-muted border-b border-border">
+          <span className="text-xs text-foreground">{title}</span>
           <button
             onClick={handleCopy}
             className="p-1 hover:bg-accent rounded transition-colors"
