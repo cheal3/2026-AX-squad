@@ -3,6 +3,48 @@ const fs = require("fs");
 const net = require("net");
 const path = require("path");
 const readline = require("readline");
+
+function hasRequiredNodeVersion() {
+  const [major, minor] = process.versions.node.split(".").map(Number);
+  return major > 22 || (major === 22 && minor >= 12);
+}
+
+function findNode22Binary() {
+  const candidates = [
+    "/opt/homebrew/opt/node@22/bin/node",
+    "/usr/local/opt/node@22/bin/node",
+  ];
+
+  return candidates.find((candidate) => fs.existsSync(candidate));
+}
+
+if (!hasRequiredNodeVersion()) {
+  const node22 = findNode22Binary();
+
+  if (!node22) {
+    console.error(
+      `Electron 42 requires Node >=22.12.0, but current Node is ${process.versions.node}.`
+    );
+    console.error("Install Node 22 or run: brew install node@22");
+    process.exit(1);
+  }
+
+  const env = { ...process.env };
+  delete env.ELECTRON_RUN_AS_NODE;
+
+  const result = spawnSync(node22, [__filename, ...process.argv.slice(2)], {
+    cwd: process.cwd(),
+    env,
+    stdio: "inherit",
+  });
+
+  if (result.error) {
+    throw result.error;
+  }
+
+  process.exit(result.status ?? 0);
+}
+
 const electronPath = require("electron");
 
 const rootDir = path.resolve(__dirname, "..");
@@ -131,8 +173,8 @@ function getManagedElectronCommand(version) {
 }
 
 function getManagedRuntimeStatus(version) {
-  if (version === getBundledElectronVersion()) {
-    return "프로젝트 설치됨";
+  if (version === "bundled" || version === getBundledElectronVersion()) {
+    return "설치됨";
   }
 
   return fs.existsSync(getManagedElectronCommand(version)) ? "설치됨" : "미설치";
@@ -157,7 +199,7 @@ function extractZip(zipPath, destination) {
 }
 
 async function ensureManagedElectron(version) {
-  if (version === getBundledElectronVersion()) {
+  if (version === "bundled" || version === getBundledElectronVersion()) {
     return electronPath;
   }
 
@@ -198,22 +240,35 @@ async function ensureManagedElectron(version) {
 }
 
 function loadRuntimeOptions() {
+  const bundledElectronVersion = getBundledElectronVersion();
+  const bundledChromiumVersion = getChromiumVersion(bundledElectronVersion);
   const options = [
-    ...managedElectronOptions.map((runtime) => {
-      const chromiumVersion = getChromiumVersion(runtime.electronVersion);
+    {
+      id: "bundled",
+      label: formatVersionLabel(bundledElectronVersion, bundledChromiumVersion),
+      runtimeLabel: `Electron ${bundledElectronVersion}`,
+      command: "",
+      args: [],
+      electronVersion: bundledElectronVersion,
+      chromiumVersion: bundledChromiumVersion,
+      managedVersion: "bundled",
+    },
+    ...managedElectronOptions
+      .filter((runtime) => runtime.electronVersion !== bundledElectronVersion)
+      .map((runtime) => {
+        const chromiumVersion = getChromiumVersion(runtime.electronVersion);
 
-      return {
-        id: runtime.id,
-        label: formatVersionLabel(runtime.electronVersion, chromiumVersion),
-        runtimeLabel: `Electron ${runtime.electronVersion}`,
-        command: "",
-        args: [],
-        description: `${runtime.description} (${getManagedRuntimeStatus(runtime.electronVersion)})`,
-        electronVersion: runtime.electronVersion,
-        chromiumVersion,
-        managedVersion: runtime.electronVersion,
-      };
-    }),
+        return {
+          id: runtime.id,
+          label: formatVersionLabel(runtime.electronVersion, chromiumVersion),
+          runtimeLabel: `Electron ${runtime.electronVersion}`,
+          command: "",
+          args: [],
+          electronVersion: runtime.electronVersion,
+          chromiumVersion,
+          managedVersion: runtime.electronVersion,
+        };
+      }),
   ];
 
   if (process.env.DEBUG_BROWSER_ELECTRON_BIN) {
@@ -223,7 +278,6 @@ function loadRuntimeOptions() {
       runtimeLabel: "환경변수 Electron",
       command: process.env.DEBUG_BROWSER_ELECTRON_BIN,
       args: [],
-      description: "DEBUG_BROWSER_ELECTRON_BIN 경로로 실행. Chromium 버전은 앱 실행 후 상단에서 확인",
     });
   }
 
@@ -240,8 +294,6 @@ function loadRuntimeOptions() {
             runtimeLabel: runtime.runtimeLabel || runtime.label || runtime.command,
             command: runtime.command,
             args: Array.isArray(runtime.args) ? runtime.args : [],
-            description:
-              runtime.description || "browser-runtimes.json 등록 런타임. Chromium 버전은 앱 실행 후 상단에서 확인",
           });
         });
       }
@@ -256,7 +308,7 @@ function loadRuntimeOptions() {
 function formatRuntimeOption(option, index, selectedIndex) {
   const prefix = index === selectedIndex ? ">" : " ";
   const status = option.managedVersion ? getManagedRuntimeStatus(option.managedVersion) : "준비됨";
-  const row = `${prefix} ${option.label}  |  ${status}  |  ${option.description}`;
+  const row = `${prefix} ${option.label}  |  ${status}`;
 
   if (index !== selectedIndex) return `  ${row}`;
 

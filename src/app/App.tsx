@@ -33,8 +33,18 @@ import {
   type TraceTimelineEvent,
 } from "./lib/trace-data";
 
+function getDefaultDebugUrl() {
+  if (typeof window === "undefined") return "http://127.0.0.1:5173/debug-error.html";
+
+  if (window.location.protocol === "file:") {
+    return new URL("./debug-error.html", window.location.href).toString();
+  }
+
+  return new URL("/debug-error.html", window.location.origin).toString();
+}
+
 export default function App() {
-  const [url, setUrl] = useState("https://ims.hwgeneralins.com/general/jsp/smartScanner.jsp");
+  const [url, setUrl] = useState(getDefaultDebugUrl);
   const [trace, setTrace] = useState<TraceSession>(emptyTraceSession);
   const [debuggerScripts, setDebuggerScripts] = useState<DebuggerScript[]>([]);
   const [logpointStatus, setLogpointStatus] = useState<string>("");

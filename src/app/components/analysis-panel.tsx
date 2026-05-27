@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState, type PointerEvent, type WheelEvent } from "react";
+import { useEffect, useRef, useState, type PointerEvent, type ReactNode, type WheelEvent } from "react";
 import {
   AlertCircle,
+  Bot,
   ChevronDown,
   Clock,
   Code2,
@@ -158,6 +159,18 @@ function getUrlParts(url: string) {
     };
   } catch {
     return { primary: url, secondary: "" };
+  }
+}
+
+function getFileLineLabel(file: string, line?: number) {
+  const lineSuffix = line ? `:${line}` : "";
+
+  try {
+    const parsedUrl = new URL(file);
+    const fileName = parsedUrl.pathname.split("/").filter(Boolean).pop();
+    return `${fileName || parsedUrl.hostname}${lineSuffix}`;
+  } catch {
+    return `${file}${lineSuffix}`;
   }
 }
 
@@ -1145,6 +1158,7 @@ function FlowStoryCard({
   searchMatched,
   onToggle,
   onTraceApiCaller,
+  onInspectError,
 }: {
   item: FlowStoryItem;
   index: number;
@@ -1152,6 +1166,7 @@ function FlowStoryCard({
   searchMatched: boolean;
   onToggle: () => void;
   onTraceApiCaller: (apiCall: TraceApiCall) => void;
+  onInspectError: (errorId: string) => void;
 }) {
   const Icon =
     item.type === "function"
@@ -1170,9 +1185,16 @@ function FlowStoryCard({
   return (
     <div className="relative">
       {index > 0 && <div className="absolute -top-3 left-5 w-px h-3 bg-border" />}
-      <button
-        type="button"
+      <div
+        role="button"
+        tabIndex={0}
         onClick={onToggle}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            onToggle();
+          }
+        }}
         className={`relative w-full border rounded p-3 text-left transition-shadow ${visual.tone}`}
       >
         {searchMatched && (
@@ -1194,10 +1216,19 @@ function FlowStoryCard({
                 <span>· {item.timestamp}</span>
               </div>
               <div className="flex shrink-0 items-center gap-1.5">
-                {item.status === "error" && (
-                  <span className="px-2 py-0.5 rounded bg-muted text-foreground text-[10px]">
-                    확인 필요
-                  </span>
+                {item.error && (
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onInspectError(item.error!.id);
+                    }}
+                    onKeyDown={(event) => event.stopPropagation()}
+                    className="inline-flex items-center gap-1 rounded bg-[#eff6ff] px-2 py-0.5 text-[10px] font-medium text-[#1d4ed8] hover:bg-[#dbeafe] dark:bg-[#54616c] dark:text-[#eaf4ff]"
+                  >
+                    <Bot className="h-3 w-3" />
+                    AI 분석
+                  </button>
                 )}
               </div>
             </div>
@@ -1250,7 +1281,7 @@ function FlowStoryCard({
             )}
           </div>
         </div>
-      </button>
+      </div>
       {expanded && (
         <div className="ml-12 mt-2 border border-border bg-card rounded p-3 space-y-3">
           {item.functionNode && <FunctionStoryDetail functionNode={item.functionNode} />}
@@ -1520,63 +1551,6 @@ function buildTraceFindings(trace: TraceSession, story: FlowStoryItem[]): TraceF
   return findings.slice(0, 8);
 }
 
-function TraceFindingCard({ finding }: { finding: TraceFinding }) {
-  const tone =
-    finding.severity === "critical"
-      ? "border-[#fecaca] bg-[#fff1f2] dark:border-[#a98787] dark:bg-[#5f5555]"
-      : finding.severity === "warning"
-        ? "border-[#fed7aa] bg-[#fff7ed] dark:border-[#ad8460] dark:bg-[#5f564e]"
-        : "border-[#fed7aa] bg-white dark:border-[#ad8460] dark:bg-[#5a554f]";
-  const label =
-    finding.severity === "critical"
-      ? "높음"
-      : finding.severity === "warning"
-        ? "주의"
-        : "참고";
-
-  return (
-    <div className={`min-w-0 rounded border p-3 ${tone}`}>
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="text-sm font-medium break-words" style={{ color: "var(--analysis-body-text)" }}>{finding.title}</div>
-          <div className="mt-1 text-xs break-words [overflow-wrap:anywhere]" style={{ color: "var(--analysis-body-text)" }}>
-            {finding.description}
-          </div>
-        </div>
-        <span className="shrink-0 rounded bg-white/80 px-2 py-0.5 text-[10px] dark:bg-card/70" style={{ color: "var(--analysis-body-text)" }}>{label}</span>
-      </div>
-      {finding.evidence && (
-        <div className="mt-2 rounded bg-white/70 px-2 py-1 text-[11px] opacity-90 break-all [overflow-wrap:anywhere] dark:bg-card/70" style={{ color: "var(--analysis-body-text)" }}>
-          {finding.evidence}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function TraceFindingsSection({ findings }: { findings: TraceFinding[] }) {
-  return (
-    <div className="rounded border border-[#fed7aa] bg-[#fff7ed] p-3 dark:border-[#ad8460] dark:bg-[#5f564e]">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <div className="text-sm font-medium text-[#9a3412] dark:text-[#ffe5cc]">자동 이상징후</div>
-          <div className="text-xs mt-1" style={{ color: "var(--analysis-body-text)" }}>
-            AI 분석 전후로 먼저 확인할 실패, 지연, DOM 변경, 수집 부족 신호입니다.
-          </div>
-        </div>
-        <span className="rounded bg-white/80 px-2 py-1 text-[11px] dark:bg-card/70" style={{ color: "var(--analysis-body-text)" }}>
-          {findings.length}개
-        </span>
-      </div>
-      <div className="mt-3 grid gap-2">
-        {findings.map((finding) => (
-          <TraceFindingCard key={finding.id} finding={finding} />
-        ))}
-      </div>
-    </div>
-  );
-}
-
 function TraceReport({ trace, story }: { trace: TraceSession; story: FlowStoryItem[] }) {
   const storyApis = story
     .map((item) => item.apiCall)
@@ -1676,6 +1650,20 @@ function analyzeErrorMessage(error: TraceError, story: FlowStoryItem[]) {
         "동일 요청을 재현해 평균 latency와 실패율을 확인",
         "서버 처리 시간이 긴 구간 또는 외부 연동 지연 여부 확인",
         "클라이언트 timeout/retry 정책이 현재 업무 플로우에 맞는지 확인",
+      ],
+    };
+  }
+
+  if (message.includes("already been declared")) {
+    const declaredName = error.message.match(/Identifier '([^']+)'/)?.[1];
+    const targetName = declaredName ? `'${declaredName}'` : "같은 식별자";
+
+    return {
+      cause: `${targetName}가 같은 스코프에서 중복 선언된 SyntaxError입니다.`,
+      focus: `${getFileLineLabel(error.file, error.line)}의 선언부와 스크립트 중복 로드를 확인하세요.`,
+      actions: [
+        "동일 스크립트가 두 번 삽입되는지 확인",
+        "let/const/class 재선언을 var 또는 단일 선언으로 정리",
       ],
     };
   }
@@ -1865,6 +1853,22 @@ function normalizeAiAnalysis(value: unknown): AiDebugAnalysis {
   };
 }
 
+function isUsableAiAnalysis(result?: AiDebugAnalysis | null) {
+  if (!result) return false;
+
+  const text = [result.summary, result.rootCause, result.inspectFirst, result.fixSuggestion]
+    .filter(Boolean)
+    .join(" ")
+    .trim();
+  if (!text) return false;
+
+  return ![
+    "OpenAI 응답 텍스트가 비어 있습니다",
+    "응답 텍스트가 비어 있습니다",
+    "OpenAI 응답을 JSON으로 해석하지 못했습니다",
+  ].some((message) => text.includes(message));
+}
+
 type AiAnalysisStatus = "idle" | "loading" | "success" | "error";
 
 interface AiAnalysisState {
@@ -1873,27 +1877,39 @@ interface AiAnalysisState {
   message: string;
 }
 
-function ErrorAnalysisTool({ trace, story }: { trace: TraceSession; story: FlowStoryItem[] }) {
-  const [selectedErrorId, setSelectedErrorId] = useState<string | null>(trace.errors[0]?.id || null);
-  const [aiAnalysisByErrorId, setAiAnalysisByErrorId] = useState<Record<string, AiAnalysisState>>({});
-  const [autoAnalysisKey, setAutoAnalysisKey] = useState("");
+function ErrorAnalysisTool({
+  trace,
+  story,
+  selectedErrorId,
+  expandedErrorId,
+  aiAnalysisByErrorId,
+  autoAnalysisKey,
+  onSelectError,
+  onToggleError,
+  onUpdateAiAnalysis,
+  onAutoAnalysisKeyChange,
+}: {
+  trace: TraceSession;
+  story: FlowStoryItem[];
+  selectedErrorId: string | null;
+  expandedErrorId: string | null;
+  aiAnalysisByErrorId: Record<string, AiAnalysisState>;
+  autoAnalysisKey: string;
+  onSelectError: (errorId: string | null) => void;
+  onToggleError: (errorId: string | null) => void;
+  onUpdateAiAnalysis: (errorId: string, nextState: AiAnalysisState) => void;
+  onAutoAnalysisKeyChange: (key: string) => void;
+}) {
   const selectedError =
     trace.errors.find((error) => error.id === selectedErrorId) || trace.errors[0];
-  const findings = buildTraceFindings(trace, story);
   const selectedAiAnalysis = selectedError ? aiAnalysisByErrorId[selectedError.id] : undefined;
   const aiStatus = selectedAiAnalysis?.status || "idle";
-  const updateAiAnalysis = (errorId: string, nextState: AiAnalysisState) => {
-    setAiAnalysisByErrorId((current) => ({
-      ...current,
-      [errorId]: nextState,
-    }));
-  };
   const runAiAnalysis = async (targetError: TraceError) => {
     const errorId = targetError.id;
 
     const runtime = (window as any).debugAgentRuntime;
     if (!runtime?.analyzeError) {
-      updateAiAnalysis(errorId, {
+      onUpdateAiAnalysis(errorId, {
         status: "error",
         result: null,
         message: "Electron AI 분석 API가 연결되어 있지 않습니다.",
@@ -1901,7 +1917,7 @@ function ErrorAnalysisTool({ trace, story }: { trace: TraceSession; story: FlowS
       return;
     }
 
-    updateAiAnalysis(errorId, {
+    onUpdateAiAnalysis(errorId, {
       status: "loading",
       result: null,
       message: "",
@@ -1913,7 +1929,7 @@ function ErrorAnalysisTool({ trace, story }: { trace: TraceSession; story: FlowS
       );
 
       if (!result?.ok) {
-        updateAiAnalysis(errorId, {
+        onUpdateAiAnalysis(errorId, {
           status: "error",
           result: null,
           message: result?.message || "AI 분석에 실패했습니다.",
@@ -1921,15 +1937,25 @@ function ErrorAnalysisTool({ trace, story }: { trace: TraceSession; story: FlowS
         return;
       }
 
-      updateAiAnalysis(errorId, {
+      const normalizedAnalysis = normalizeAiAnalysis(result.analysis);
+      if (!isUsableAiAnalysis(normalizedAnalysis)) {
+        onUpdateAiAnalysis(errorId, {
+          status: "error",
+          result: null,
+          message: "AI 응답이 비어 있어 로컬 분석을 표시합니다.",
+        });
+        return;
+      }
+
+      onUpdateAiAnalysis(errorId, {
         status: "success",
-        result: normalizeAiAnalysis(result.analysis),
+        result: normalizedAnalysis,
         message: result.model
           ? `${result.provider === "ollama" ? "Ollama" : "OpenAI"} · ${result.model} 분석 완료`
           : "AI 분석 완료",
       });
     } catch (error) {
-      updateAiAnalysis(errorId, {
+      onUpdateAiAnalysis(errorId, {
         status: "error",
         result: null,
         message: error instanceof Error ? error.message : "AI 분석에 실패했습니다.",
@@ -1938,26 +1964,21 @@ function ErrorAnalysisTool({ trace, story }: { trace: TraceSession; story: FlowS
   };
 
   useEffect(() => {
-    setSelectedErrorId(trace.errors[0]?.id || null);
-    setAiAnalysisByErrorId({});
-    setAutoAnalysisKey("");
-  }, [trace.id]);
-
-  useEffect(() => {
     if (!selectedErrorId && trace.errors[0]) {
-      setSelectedErrorId(trace.errors[0].id);
+      onSelectError(trace.errors[0].id);
     }
-  }, [selectedErrorId, trace.errors]);
+  }, [onSelectError, selectedErrorId, trace.errors]);
 
   useEffect(() => {
     if (trace.status !== "completed" || !selectedError) return;
 
     const nextKey = `${trace.id}:${selectedError.id}`;
-    if (autoAnalysisKey === nextKey || aiStatus === "loading") return;
+    const existingAnalysis = aiAnalysisByErrorId[selectedError.id];
+    if (existingAnalysis || autoAnalysisKey === nextKey || aiStatus === "loading") return;
 
-    setAutoAnalysisKey(nextKey);
+    onAutoAnalysisKeyChange(nextKey);
     void runAiAnalysis(selectedError);
-  }, [trace.status, trace.id, selectedError?.id, autoAnalysisKey, aiStatus]);
+  }, [trace.status, trace.id, selectedError?.id, autoAnalysisKey, aiStatus, aiAnalysisByErrorId]);
 
   return (
     <div className="border border-[#fed7aa] bg-card rounded overflow-hidden dark:border-[#ad8460] dark:bg-card">
@@ -1980,15 +2001,15 @@ function ErrorAnalysisTool({ trace, story }: { trace: TraceSession; story: FlowS
           <ErrorAccordionList
             errors={trace.errors}
             selectedErrorId={selectedError.id}
+            expandedErrorId={expandedErrorId}
             aiAnalysisByErrorId={aiAnalysisByErrorId}
             story={story}
-            onSelect={setSelectedErrorId}
+            onSelect={onSelectError}
+            onToggle={onToggleError}
           />
-          <TraceFindingsSection findings={findings} />
         </div>
       ) : (
         <div className="p-4 space-y-4">
-          <TraceFindingsSection findings={findings} />
           <div className="rounded border border-border bg-card p-5 text-center dark:border-border dark:bg-card">
             <div className="text-sm text-foreground">분석할 에러가 없습니다</div>
             <div className="text-xs text-muted-foreground mt-1">
@@ -2004,15 +2025,19 @@ function ErrorAnalysisTool({ trace, story }: { trace: TraceSession; story: FlowS
 function ErrorAccordionList({
   errors,
   selectedErrorId,
+  expandedErrorId,
   aiAnalysisByErrorId,
   story,
   onSelect,
+  onToggle,
 }: {
   errors: TraceError[];
   selectedErrorId?: string;
+  expandedErrorId?: string | null;
   aiAnalysisByErrorId: Record<string, AiAnalysisState>;
   story: FlowStoryItem[];
   onSelect: (errorId: string) => void;
+  onToggle: (errorId: string | null) => void;
 }) {
   return (
     <div className="min-w-0 rounded border border-border bg-card p-3">
@@ -2030,6 +2055,7 @@ function ErrorAccordionList({
       <div className="mt-3 grid gap-2">
         {errors.map((error, index) => {
           const selected = selectedErrorId === error.id;
+          const expanded = expandedErrorId === error.id;
           const aiState = aiAnalysisByErrorId[error.id];
           const itemAnalysis = analyzeErrorMessage(error, story);
           const statusLabel =
@@ -2046,14 +2072,18 @@ function ErrorAccordionList({
               key={error.id}
               className={`min-w-0 overflow-hidden rounded border transition-colors ${
                 selected
-                  ? "border-[#f36910] bg-[#fff7ed] dark:border-[#ad8460] dark:bg-[#5f564e]"
+                  ? "border-[#ef4444] bg-[#fff1f2] dark:border-[#a98787] dark:bg-[#5f5555]"
                   : "border-border bg-muted hover:bg-card dark:bg-muted dark:hover:bg-card"
               }`}
             >
               <button
                 type="button"
-                onClick={() => onSelect(error.id)}
+                onClick={() => {
+                  onSelect(error.id);
+                  onToggle(expanded ? null : error.id);
+                }}
                 className="flex w-full min-w-0 items-start gap-3 px-3 py-3 text-left"
+                aria-expanded={expanded}
               >
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
@@ -2074,16 +2104,16 @@ function ErrorAccordionList({
                 </div>
                 <ChevronDown
                   className={`mt-1 h-4 w-4 shrink-0 text-muted-foreground transition-transform ${
-                    selected ? "rotate-180" : ""
+                    expanded ? "rotate-180" : ""
                   }`}
                 />
               </button>
 
-              {selected && (
-                <div className="border-t border-border bg-card p-3 dark:bg-card">
+              {expanded && (
+                <div className="border-t border-[#fecaca] bg-card p-3 dark:border-[#a98787] dark:bg-card">
                   <div className="grid gap-3">
-                    <SelectedErrorSummary error={error} />
                     <AiAnalysisComment
+                      error={error}
                       status={aiState?.status || "idle"}
                       message={aiState?.message || ""}
                       result={aiState?.result || null}
@@ -2100,164 +2130,157 @@ function ErrorAccordionList({
   );
 }
 
-function SelectedErrorSummary({ error }: { error: TraceError }) {
-  return (
-    <div className="border border-[#fecaca] bg-[#fff1f2] rounded p-3 dark:border-[#a98787] dark:bg-[#5f5555]">
-      <div className="text-xs text-[#991b1b] dark:text-[#ffecec]">{error.type}</div>
-      <div className="text-sm text-foreground mt-1 break-words dark:text-foreground">
-        {error.message}
-      </div>
-      <div className="text-[11px] text-[#7f1d1d] mt-1 break-all dark:text-[#f1cccc]">
-        {error.file}:{error.line}
-        {error.column ? `:${error.column}` : ""}
-      </div>
-    </div>
-  );
-}
-
 function AiAnalysisComment({
+  error,
   status,
   message,
   result,
   analysis,
 }: {
+  error: TraceError;
   status: AiAnalysisStatus;
   message: string;
   result: AiDebugAnalysis | null;
   analysis: { cause: string; focus: string; actions: string[] };
 }) {
+  const location = `${error.file}:${error.line}${error.column ? `:${error.column}` : ""}`;
+  const usableResult = isUsableAiAnalysis(result) ? result : null;
+  const analysisSummary =
+    usableResult?.summary ||
+    usableResult?.rootCause ||
+    analysis.cause ||
+    "아직 분석 결과가 없습니다.";
+  const actionItems = buildCompactActionItems(usableResult, analysis, location);
+
   return (
-    <div className="rounded border border-border bg-card p-3">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <div className="text-sm font-medium text-foreground">AI 분석 코멘트</div>
-          <div className="text-xs text-muted-foreground mt-1">
-            선택한 에러의 원인 후보와 먼저 볼 지점을 정리합니다.
-          </div>
-        </div>
-        <span className="rounded bg-muted px-2 py-1 text-[11px] text-muted-foreground">
-          {status === "loading"
-            ? "분석 중"
-            : status === "success"
-              ? "완료"
-              : status === "error"
-                ? "로컬 코멘트"
-                : "대기"}
-        </span>
-      </div>
+    <div className="overflow-hidden rounded border border-border bg-card">
+      <AnalysisStep
+        number={1}
+        title="에러 메시지"
+        body={error.message}
+        meta={location}
+      />
 
-      <div className="mt-3 space-y-3">
-        {message && (
-          <div
-            className={`rounded border px-3 py-2 text-xs ${
-              status === "error"
-                ? "border-[#fecaca] bg-[#fff1f2] text-[#991b1b] dark:border-[#a98787] dark:bg-[#5f5555] dark:text-[#ffecec]"
-                : "border-[#bfdbfe] bg-[#eff6ff] text-[#1d4ed8] dark:border-[#7f9fba] dark:bg-[#54616c] dark:text-[#eaf4ff]"
-            }`}
-          >
-            {message}
-          </div>
-        )}
-
+      <AnalysisStep number={2} title="AI 분석 결과">
         {status === "loading" ? (
-          <div className="rounded border border-border bg-muted px-3 py-4 text-center text-xs text-muted-foreground">
-            선택한 에러를 분석하고 있습니다.
-          </div>
-        ) : result ? (
-          <AiAnalysisResultView result={result} />
+          <WorkingRobotAnimation compact />
         ) : (
-          <LocalAnalysisFallback analysis={analysis} />
+          <div className="space-y-2">
+            <div className="text-sm text-foreground break-words [overflow-wrap:anywhere]">
+              {analysisSummary}
+            </div>
+            {message && status === "error" && (
+              <div className="rounded border border-[#fecaca] bg-[#fff1f2] px-3 py-2 text-xs text-[#991b1b] dark:border-[#a98787] dark:bg-[#5f5555] dark:text-[#ffecec]">
+                {message}
+              </div>
+            )}
+          </div>
         )}
-      </div>
+      </AnalysisStep>
+
+      <AnalysisStep number={3} title="확인 / 수정 포인트">
+        {status === "loading" ? (
+          <div className="text-sm text-muted-foreground">
+            분석이 끝나면 확인할 줄과 수정 방향을 정리합니다.
+          </div>
+        ) : (
+          <ul className="grid gap-2">
+            {actionItems.map((item, index) => (
+              <li key={`${item}-${index}`} className="flex gap-2 text-sm text-foreground">
+                <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#2563eb]" />
+                <span className="min-w-0 break-words [overflow-wrap:anywhere]">{item}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </AnalysisStep>
     </div>
   );
 }
 
-function AiAnalysisResultView({ result }: { result: AiDebugAnalysis }) {
+function buildCompactActionItems(
+  result: AiDebugAnalysis | null,
+  analysis: { cause: string; focus: string; actions: string[] },
+  location: string
+) {
+  const items = result
+    ? [
+        result.inspectFirst ? `확인: ${result.inspectFirst}` : `확인: ${location} 주변 코드`,
+        result.fixSuggestion ? `수정: ${result.fixSuggestion}` : "",
+      ]
+    : [
+        analysis.focus ? `확인: ${analysis.focus}` : `확인: ${location} 주변 코드`,
+        analysis.actions[0] ? `수정: ${analysis.actions[0]}` : "",
+      ];
+
+  return items
+    .filter((item): item is string => Boolean(item))
+    .slice(0, 2);
+}
+
+function AnalysisStep({
+  number,
+  title,
+  body,
+  meta,
+  children,
+}: {
+  number: number;
+  title: string;
+  body?: string;
+  meta?: string;
+  children?: ReactNode;
+}) {
   return (
-    <div className="space-y-3">
-      <div className="border border-[#bfdbfe] bg-[#eff6ff] rounded p-3 dark:border-[#7f9fba] dark:bg-[#54616c]">
-        <div className="text-xs font-medium text-[#1d4ed8] dark:text-[#eaf4ff]">AI 결론</div>
-        <div className="text-sm text-foreground mt-1 break-words [overflow-wrap:anywhere]">
-          {result.summary || result.rootCause || "AI 분석 결과가 비어 있습니다."}
+    <section className="border-b border-border p-4 last:border-b-0">
+      <div className="mb-2 flex items-center gap-2">
+        <span
+          className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#eff6ff] text-xs font-semibold text-[#1d4ed8] dark:bg-[#54616c] dark:text-[#eaf4ff]"
+        >
+          {number}
+        </span>
+        <div className="text-sm font-semibold text-foreground">{title}</div>
+      </div>
+
+      {body && (
+        <div className="text-sm text-foreground break-words [overflow-wrap:anywhere]">{body}</div>
+      )}
+      {meta && <div className="mt-1 text-xs text-muted-foreground break-all">{meta}</div>}
+      {children}
+    </section>
+  );
+}
+
+function WorkingRobotAnimation({ compact = false }: { compact?: boolean }) {
+  return (
+    <div className={`overflow-hidden rounded border border-[#bfdbfe] bg-[#eff6ff] dark:border-[#7f9fba] dark:bg-[#54616c] ${compact ? "px-3 py-3" : "px-4 py-5"}`}>
+      <div className="flex items-center justify-center gap-3">
+        <div className="relative flex h-12 w-12 shrink-0 items-center justify-center">
+          <svg
+            viewBox="0 0 100 100"
+            className="absolute inset-0 animate-spin text-[#2563eb] dark:text-[#bfdbfe]"
+            style={{ animationDuration: "5.5s" }}
+            aria-hidden="true"
+          >
+            <path
+              fill="currentColor"
+              fillRule="evenodd"
+              d="M56.5 7 59 17.8a33.6 33.6 0 0 1 7.1 2.9l9.3-5.9 9.8 9.8-5.9 9.3a33.6 33.6 0 0 1 2.9 7.1L93 43.5v13l-10.8 2.5a33.6 33.6 0 0 1-2.9 7.1l5.9 9.3-9.8 9.8-9.3-5.9a33.6 33.6 0 0 1-7.1 2.9L56.5 93h-13L41 82.2a33.6 33.6 0 0 1-7.1-2.9l-9.3 5.9-9.8-9.8 5.9-9.3a33.6 33.6 0 0 1-2.9-7.1L7 56.5v-13L17.8 41a33.6 33.6 0 0 1 2.9-7.1l-5.9-9.3 9.8-9.8 9.3 5.9a33.6 33.6 0 0 1 7.1-2.9L43.5 7h13ZM50 72a22 22 0 1 0 0-44 22 22 0 0 0 0 44Z"
+            />
+            <circle cx="50" cy="50" r="26" fill="#dbeafe" className="dark:fill-[#3b4f66]" />
+            <circle cx="50" cy="50" r="21" fill="white" className="dark:fill-[#27384b]" />
+          </svg>
+          <div className="relative flex h-7 w-7 items-center justify-center rounded-full text-[#2563eb] dark:text-[#eaf4ff]">
+            <Bot className="h-4 w-4" />
+          </div>
+        </div>
+        <div className="min-w-0">
+          <div className="text-sm font-medium leading-6 text-[#1d4ed8] dark:text-[#eaf4ff]">
+            AI가 trace를 분석 중입니다
+          </div>
         </div>
       </div>
-
-      <div className="grid gap-3 md:grid-cols-2">
-        <AnalysisTextCard title="원인 후보" value={result.rootCause} />
-        <AnalysisTextCard title="먼저 볼 지점" value={result.inspectFirst} />
-      </div>
-
-      {result.evidence && result.evidence.length > 0 && (
-        <AnalysisListCard title="판단 근거" items={result.evidence} markerClassName="bg-[#5f5f5f]" />
-      )}
-
-      {result.debugSteps && result.debugSteps.length > 0 && (
-        <AnalysisListCard title="디버깅 절차" items={result.debugSteps} markerClassName="bg-[#f36910]" />
-      )}
-
-      {result.fixSuggestion && (
-        <AnalysisTextCard title="수정 방향" value={result.fixSuggestion} />
-      )}
-
-      {result.missingData && result.missingData.length > 0 && (
-        <AnalysisListCard title="추가로 있으면 좋은 데이터" items={result.missingData} markerClassName="bg-[#5f5f5f]" />
-      )}
     </div>
-  );
-}
-
-function AnalysisTextCard({ title, value }: { title: string; value?: string }) {
-  return (
-    <div className="min-w-0 border border-border rounded p-3 bg-card">
-      <div className="text-xs text-muted-foreground">{title}</div>
-      <div className="text-sm text-foreground mt-1 break-words [overflow-wrap:anywhere]">
-        {value || "제공된 분석이 없습니다."}
-      </div>
-    </div>
-  );
-}
-
-function AnalysisListCard({
-  title,
-  items,
-  markerClassName,
-}: {
-  title: string;
-  items: string[];
-  markerClassName: string;
-}) {
-  return (
-    <div className="border border-border bg-muted rounded p-3">
-      <div className="text-xs font-medium text-foreground">{title}</div>
-      <div className="mt-2 grid gap-2">
-        {items.map((item, index) => (
-          <div key={`${item}-${index}`} className="flex gap-2 text-xs text-foreground">
-            <span className={`mt-1 h-1.5 w-1.5 rounded-full shrink-0 ${markerClassName}`} />
-            <span className="min-w-0 break-words [overflow-wrap:anywhere]">{item}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function LocalAnalysisFallback({
-  analysis,
-}: {
-  analysis: { cause: string; focus: string; actions: string[] };
-}) {
-  return (
-    <>
-      <div className="rounded border border-border bg-muted px-3 py-2 text-xs text-muted-foreground">
-        실제 AI 분석 전에는 로컬 규칙 기반 fallback을 표시합니다.
-      </div>
-      <div className="grid gap-3 md:grid-cols-2">
-        <AnalysisTextCard title="원인 후보" value={analysis.cause} />
-        <AnalysisTextCard title="먼저 볼 지점" value={analysis.focus} />
-      </div>
-      <AnalysisListCard title="디버깅 체크리스트" items={analysis.actions} markerClassName="bg-[#f36910]" />
-    </>
   );
 }
 
@@ -2269,8 +2292,10 @@ function FlowGraphDialog({
   networkResourceFilter,
   networkSearchQuery,
   visibleApiCount,
+  aiAnalysisByErrorId,
   onNetworkResourceFilterChange,
   onNetworkSearchChange,
+  onInspectError,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -2279,8 +2304,10 @@ function FlowGraphDialog({
   networkResourceFilter: NetworkResourceFilterSelection;
   networkSearchQuery: string;
   visibleApiCount: number;
+  aiAnalysisByErrorId: Record<string, AiAnalysisState>;
   onNetworkResourceFilterChange: (filter: NetworkResourceFilterSelection) => void;
   onNetworkSearchChange: (query: string) => void;
+  onInspectError: (errorId: string) => void;
 }) {
   const [dialogSize, setDialogSize] = useState(() => ({
     width: typeof window === "undefined" ? 1280 : Math.round(window.innerWidth * 0.94),
@@ -2395,6 +2422,9 @@ function FlowGraphDialog({
       ),
       behavior: "smooth",
     });
+  };
+  const handleGraphItemClick = (item: FlowStoryItem) => {
+    selectAndFocusNode(item.id);
   };
   const startResize = (event: PointerEvent<HTMLDivElement>) => {
     event.preventDefault();
@@ -2724,7 +2754,7 @@ function FlowGraphDialog({
                         x={60 + index * (nodeWidth + xGap)}
                         y={yBase + yOffsets[item.type]}
                         width={nodeWidth}
-                        onClick={() => selectAndFocusNode(item.id)}
+                        onClick={() => handleGraphItemClick(item)}
                       />
                     );
                   })}
@@ -2773,7 +2803,7 @@ function FlowGraphDialog({
                             <button
                               key={`summary-${item.id}`}
                               type="button"
-                              onClick={() => selectAndFocusNode(item.id)}
+                              onClick={() => handleGraphItemClick(item)}
                               className={`relative w-full text-left rounded border px-3 py-2 transition-colors ${
                                 selectedItem?.id === item.id
                                   ? "border-[#f36910] bg-muted"
@@ -2817,7 +2847,9 @@ function FlowGraphDialog({
               <FlowNodeDetailPanel
                 selectedItem={selectedItem}
                 height={diagramLayout.detailHeight}
+                aiAnalysisByErrorId={aiAnalysisByErrorId}
                 onCollapse={() => setDetailCollapsed(true)}
+                onInspectError={onInspectError}
               />
             </>
           )}
@@ -2937,12 +2969,25 @@ function ResizeDivider({
 function FlowNodeDetailPanel({
   selectedItem,
   height,
+  aiAnalysisByErrorId,
   onCollapse,
+  onInspectError,
 }: {
   selectedItem?: FlowStoryItem;
   height: number;
+  aiAnalysisByErrorId: Record<string, AiAnalysisState>;
   onCollapse: () => void;
+  onInspectError: (errorId: string) => void;
 }) {
+  const selectedErrorAnalysis = selectedItem?.error
+    ? aiAnalysisByErrorId[selectedItem.error.id]?.result
+    : undefined;
+  const usableSelectedErrorAnalysis = isUsableAiAnalysis(selectedErrorAnalysis)
+    ? selectedErrorAnalysis
+    : undefined;
+  const selectedErrorAnalysisText =
+    usableSelectedErrorAnalysis?.summary || usableSelectedErrorAnalysis?.rootCause || "";
+
   return (
     <div className="border-t border-border bg-card p-4 overflow-auto" style={{ height }}>
       <div className="flex items-center justify-between gap-3">
@@ -2957,6 +3002,15 @@ function FlowNodeDetailPanel({
             <span className="px-2 py-1 rounded bg-muted border border-border text-[11px] text-foreground uppercase">
               {getFlowVisual(selectedItem).label}
             </span>
+          )}
+          {selectedItem?.error && (
+            <button
+              type="button"
+              onClick={() => onInspectError(selectedItem.error!.id)}
+              className="rounded bg-[#ef4444] px-2.5 py-1.5 text-xs text-white hover:bg-[#dc2626]"
+            >
+              AI 분석에서 보기
+            </button>
           )}
           <button
             type="button"
@@ -2984,6 +3038,14 @@ function FlowNodeDetailPanel({
           </div>
 
           <div className="min-w-0 space-y-3">
+            {selectedItem.error && (
+              <RobotAnalysisSummary
+                text={
+                  selectedErrorAnalysisText ||
+                  "아직 AI 분석 결과가 없습니다. AI 분석에서 보기를 눌러 분석을 실행하세요."
+                }
+              />
+            )}
             {selectedItem.functionNode && (
               <FunctionStoryDetail functionNode={selectedItem.functionNode} />
             )}
@@ -3002,16 +3064,6 @@ function FlowNodeDetailPanel({
                 )}
               </>
             )}
-            {selectedItem.error && (
-              <ErrorCard
-                message={selectedItem.error.message}
-                type={selectedItem.error.type}
-                file={selectedItem.error.file}
-                line={selectedItem.error.line}
-                column={selectedItem.error.column}
-                stackTrace={selectedItem.error.stackTrace}
-              />
-            )}
             {!selectedItem.functionNode && !selectedItem.apiCall && !selectedItem.error && selectedItem.event && (
               <TimelineInlineDetail event={selectedItem.event} />
             )}
@@ -3020,6 +3072,26 @@ function FlowNodeDetailPanel({
       ) : (
         <div className="mt-4 text-xs text-muted-foreground">선택된 노드가 없습니다.</div>
       )}
+    </div>
+  );
+}
+
+function RobotAnalysisSummary({ text }: { text: string }) {
+  return (
+    <div className="rounded border border-[#bfdbfe] bg-[#eff6ff] p-3 dark:border-[#7f9fba] dark:bg-[#54616c]">
+      <div className="flex items-start gap-3">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[#93c5fd] bg-white text-[#2563eb] dark:border-[#7f9fba] dark:bg-[#27384b] dark:text-[#eaf4ff]">
+          <Bot className="h-4 w-4" />
+        </div>
+        <div className="min-w-0">
+          <div className="text-xs font-semibold text-[#1d4ed8] dark:text-[#eaf4ff]">
+            AI 분석 결과
+          </div>
+          <div className="mt-1 text-sm text-foreground break-words [overflow-wrap:anywhere]">
+            {text}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -3475,11 +3547,18 @@ export function AnalysisPanel({
   onApplyLogpoints,
   onLoadScriptSource,
 }: AnalysisPanelProps) {
-  const [expandedFunctionId, setExpandedFunctionId] = useState<string | null>(null);
   const [expandedStoryId, setExpandedStoryId] = useState<string | null>(null);
   const [graphOpen, setGraphOpen] = useState(false);
   const [panelTab, setPanelTab] = useState<"flow" | "analysis">("flow");
   const [networkSearchQuery, setNetworkSearchQuery] = useState("");
+  const [selectedAnalysisErrorId, setSelectedAnalysisErrorId] = useState<string | null>(
+    trace.errors[0]?.id || null
+  );
+  const [expandedAnalysisErrorId, setExpandedAnalysisErrorId] = useState<string | null>(
+    trace.errors[0]?.id || null
+  );
+  const [aiAnalysisByErrorId, setAiAnalysisByErrorId] = useState<Record<string, AiAnalysisState>>({});
+  const [autoAnalysisKey, setAutoAnalysisKey] = useState("");
   const flowStory = buildFlowStory(trace, networkResourceFilter);
   const visibleApiCount = trace.apiCalls.filter((apiCall) =>
     shouldShowApiCall(apiCall, networkResourceFilter)
@@ -3494,12 +3573,26 @@ export function AnalysisPanel({
       endLine: caller.line,
     });
   };
+  const updateAiAnalysis = (errorId: string, nextState: AiAnalysisState) => {
+    setAiAnalysisByErrorId((current) => ({
+      ...current,
+      [errorId]: nextState,
+    }));
+  };
+  const openErrorInAnalysis = (errorId: string) => {
+    setSelectedAnalysisErrorId(errorId);
+    setExpandedAnalysisErrorId(errorId);
+    setPanelTab("analysis");
+    setGraphOpen(false);
+  };
 
   useEffect(() => {
-    if (trace.status === "completed" && trace.errors.length > 0) {
-      setPanelTab("analysis");
-    }
-  }, [trace.status, trace.errors.length]);
+    const firstErrorId = trace.errors[0]?.id || null;
+    setSelectedAnalysisErrorId(firstErrorId);
+    setExpandedAnalysisErrorId(firstErrorId);
+    setAiAnalysisByErrorId({});
+    setAutoAnalysisKey("");
+  }, [trace.id]);
 
   return (
     <div className="h-full flex flex-col bg-background dark:bg-background">
@@ -3559,8 +3652,10 @@ export function AnalysisPanel({
           networkResourceFilter={networkResourceFilter}
           networkSearchQuery={networkSearchQuery}
           visibleApiCount={visibleApiCount}
+          aiAnalysisByErrorId={aiAnalysisByErrorId}
           onNetworkResourceFilterChange={onNetworkResourceFilterChange}
           onNetworkSearchChange={setNetworkSearchQuery}
+          onInspectError={openErrorInAnalysis}
         />
         {panelTab === "flow" ? (
           <div className="h-full flex flex-col overflow-hidden">
@@ -3593,6 +3688,7 @@ export function AnalysisPanel({
                         setExpandedStoryId(expandedStoryId === item.id ? null : item.id)
                       }
                       onTraceApiCaller={traceApiCaller}
+                      onInspectError={openErrorInAnalysis}
                     />
                   ))}
                 </div>
@@ -3635,29 +3731,18 @@ export function AnalysisPanel({
                 </div>
               </div>
             )}
-            <ErrorAnalysisTool trace={trace} story={flowStory} />
-
-            {trace.functions.length > 0 && (
-              <details className="border border-border rounded bg-card overflow-hidden">
-                <summary className="cursor-pointer px-3 py-2 text-sm text-foreground bg-secondary">
-                  원본 함수 프레임
-                </summary>
-                <div className="p-3 space-y-2">
-                  {trace.functions.map((functionNode) => (
-                    <FunctionItem
-                      key={functionNode.id}
-                      functionNode={functionNode}
-                      expanded={expandedFunctionId === functionNode.id}
-                      onToggle={() =>
-                        setExpandedFunctionId(
-                          expandedFunctionId === functionNode.id ? null : functionNode.id
-                        )
-                      }
-                    />
-                  ))}
-                </div>
-              </details>
-            )}
+            <ErrorAnalysisTool
+              trace={trace}
+              story={flowStory}
+              selectedErrorId={selectedAnalysisErrorId}
+              expandedErrorId={expandedAnalysisErrorId}
+              aiAnalysisByErrorId={aiAnalysisByErrorId}
+              autoAnalysisKey={autoAnalysisKey}
+              onSelectError={setSelectedAnalysisErrorId}
+              onToggleError={setExpandedAnalysisErrorId}
+              onUpdateAiAnalysis={updateAiAnalysis}
+              onAutoAnalysisKeyChange={setAutoAnalysisKey}
+            />
           </div>
         )}
       </div>

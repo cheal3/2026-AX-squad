@@ -1,4 +1,4 @@
-import { RefreshCw, ArrowLeft, ArrowRight, Home } from "lucide-react";
+import { Bug, RefreshCw, ArrowLeft, ArrowRight, Home } from "lucide-react";
 import { FormEvent, useEffect, useRef, useState } from "react";
 
 interface BrowserViewProps {
@@ -97,7 +97,8 @@ export function BrowserView({
   const [draftUrl, setDraftUrl] = useState(url);
   const webviewRef = useRef<any>(null);
   const isWebviewReadyRef = useRef(false);
-  const normalizedUrl = /^https?:\/\//i.test(url) ? url : `https://${url}`;
+  const hasUrlScheme = /^[a-z][a-z\d+.-]*:\/\//i.test(url);
+  const normalizedUrl = hasUrlScheme ? url : `https://${url}`;
   const homeUrlRef = useRef(normalizedUrl);
   const initialWebviewUrlRef = useRef(normalizedUrl);
   const lastRequestedUrlRef = useRef(normalizedUrl);
@@ -176,6 +177,17 @@ export function BrowserView({
 
     lastRequestedUrlRef.current = homeUrlRef.current;
     webview.loadURL(homeUrlRef.current).catch?.(() => undefined);
+  };
+
+  const openTargetDevTools = () => {
+    const webview = webviewRef.current;
+    if (!webview || !isWebviewReadyRef.current) return;
+
+    try {
+      webview.openDevTools?.();
+    } catch {
+      // Some Electron builds can block webview DevTools in restricted contexts.
+    }
   };
 
   const navigateToDraftUrl = (event: FormEvent) => {
@@ -376,15 +388,25 @@ export function BrowserView({
           type="button"
           onClick={goHome}
           className="rounded p-1.5 transition-colors hover:bg-muted dark:hover:bg-muted"
+          title="홈으로 이동"
         >
           <Home className="w-4 h-4 text-muted-foreground" />
+        </button>
+        <button
+          type="button"
+          onClick={openTargetDevTools}
+          disabled={!webviewReady}
+          className="rounded p-1.5 transition-colors hover:bg-muted disabled:opacity-40 dark:hover:bg-muted"
+          title="현재 페이지 개발자도구 열기"
+        >
+          <Bug className="w-4 h-4 text-muted-foreground" />
         </button>
         <input
           type="text"
           value={draftUrl}
           onChange={(event) => setDraftUrl(event.target.value)}
           className="flex-1 rounded border border-border bg-card px-3 py-1.5 text-xs text-foreground shadow-sm focus:border-[var(--color-electric-blue)] focus:outline-none focus:ring-2 focus:ring-[var(--color-electric-blue)]/15 dark:border-border dark:bg-card dark:text-foreground"
-          placeholder="https://ims.hwgeneralins.com/general/jsp/smartScanner.jsp"
+          placeholder="http://127.0.0.1:5173/debug-error.html"
         />
         <button
           type="submit"
