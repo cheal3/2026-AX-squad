@@ -33,18 +33,24 @@ import {
   type TraceTimelineEvent,
 } from "./lib/trace-data";
 
-function getDefaultDebugUrl() {
-  if (typeof window === "undefined") return "http://127.0.0.1:5173/debug-error.html";
+const DEFAULT_TARGET_URL = "https://ims.hwgeneralins.com/general/jsp/smartScanner.jsp";
+const MAX_TIMELINE_EVENTS = 600;
+const MAX_API_CALLS = 400;
+const MAX_FUNCTION_EVENTS = 400;
+const MAX_ERRORS = 120;
+const MAX_CODE_LOCATIONS = 160;
 
-  if (window.location.protocol === "file:") {
-    return new URL("./debug-error.html", window.location.href).toString();
-  }
+function getDefaultTargetUrl() {
+  return DEFAULT_TARGET_URL;
+}
 
-  return new URL("/debug-error.html", window.location.origin).toString();
+function appendBounded<T>(items: T[], item: T, limit: number) {
+  const nextItems = [...items, item];
+  return nextItems.length > limit ? nextItems.slice(nextItems.length - limit) : nextItems;
 }
 
 export default function App() {
-  const [url, setUrl] = useState(getDefaultDebugUrl);
+  const [url, setUrl] = useState(getDefaultTargetUrl);
   const [trace, setTrace] = useState<TraceSession>(emptyTraceSession);
   const [debuggerScripts, setDebuggerScripts] = useState<DebuggerScript[]>([]);
   const [logpointStatus, setLogpointStatus] = useState<string>("");
@@ -150,14 +156,15 @@ export default function App() {
         return {
           ...currentTrace,
           durationMs,
-          timeline: [
-            ...currentTrace.timeline,
+          timeline: appendBounded(
+            currentTrace.timeline,
             {
               ...event,
               id: createEventId("event"),
               timestamp: `${durationMs}ms`,
             },
-          ],
+            MAX_TIMELINE_EVENTS
+          ),
         };
       });
     },
@@ -220,9 +227,9 @@ export default function App() {
         return {
           ...currentTrace,
           durationMs,
-          errors: [...currentTrace.errors, error],
-          timeline: [
-            ...currentTrace.timeline,
+          errors: appendBounded(currentTrace.errors, error, MAX_ERRORS),
+          timeline: appendBounded(
+            currentTrace.timeline,
             {
               id: createEventId("event"),
               type: "error",
@@ -231,14 +238,16 @@ export default function App() {
               details: event.message,
               status: "error",
             },
-          ],
-          codeLocations: [
-            ...currentTrace.codeLocations,
+            MAX_TIMELINE_EVENTS
+          ),
+          codeLocations: appendBounded(
+            currentTrace.codeLocations,
             {
               file: source,
               line,
             },
-          ],
+            MAX_CODE_LOCATIONS
+          ),
         };
       });
     },
@@ -273,9 +282,9 @@ export default function App() {
         return {
           ...currentTrace,
           durationMs,
-          apiCalls: [...currentTrace.apiCalls, apiCall],
-          timeline: [
-            ...currentTrace.timeline,
+          apiCalls: appendBounded(currentTrace.apiCalls, apiCall, MAX_API_CALLS),
+          timeline: appendBounded(
+            currentTrace.timeline,
             {
               id: createEventId("event"),
               type: "api",
@@ -284,7 +293,8 @@ export default function App() {
               details: `${statusLabel} · ${event.latencyMs}ms · ${event.transport}`,
               status: event.ok ? "success" : "error",
             },
-          ],
+            MAX_TIMELINE_EVENTS
+          ),
         };
       });
     },
@@ -319,9 +329,9 @@ export default function App() {
         return {
           ...currentTrace,
           durationMs,
-          functions: [...currentTrace.functions, functionNode],
-          timeline: [
-            ...currentTrace.timeline,
+          functions: appendBounded(currentTrace.functions, functionNode, MAX_FUNCTION_EVENTS),
+          timeline: appendBounded(
+            currentTrace.timeline,
             {
               id: createEventId("event"),
               type: "function",
@@ -335,7 +345,8 @@ export default function App() {
                 "function call",
               status: event.hasError ? "error" : "success",
             },
-          ],
+            MAX_TIMELINE_EVENTS
+          ),
         };
       });
     },
@@ -359,8 +370,8 @@ export default function App() {
         return {
           ...currentTrace,
           durationMs,
-          timeline: [
-            ...currentTrace.timeline,
+          timeline: appendBounded(
+            currentTrace.timeline,
             {
               id: createEventId("event"),
               type: "action",
@@ -368,7 +379,8 @@ export default function App() {
               timestamp: `${durationMs}ms`,
               details: `${event.target || "unknown target"} · ${event.pageUrl || ""}`,
             },
-          ],
+            MAX_TIMELINE_EVENTS
+          ),
         };
       });
     },

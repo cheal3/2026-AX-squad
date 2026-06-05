@@ -212,89 +212,6 @@ const AI_ANALYSIS_JSON_SCHEMA = {
   additionalProperties: false,
 };
 
-function buildFallbackAnalysis(rawText, providerLabel) {
-  const fallbackText = rawText || `${providerLabel} 응답 텍스트가 비어 있습니다.`;
-
-  return {
-    summary: fallbackText,
-    rootCause: fallbackText,
-    evidence: [],
-    inspectFirst: "",
-    debugSteps: [],
-    fixSuggestion: "",
-    confidence: "low",
-    missingData: ["AI 응답 원문 확인"],
-  };
-}
-
-async function analyzeErrorWithOllama(payload = {}) {
-  const model = process.env.OLLAMA_MODEL || "qwen2.5-coder:7b";
-  const baseUrl = (process.env.OLLAMA_BASE_URL || "http://127.0.0.1:11434").replace(/\/$/, "");
-  const prompt = createAnalysisPrompt(payload);
-
-  try {
-    const response = await fetch(`${baseUrl}/api/chat`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model,
-        stream: false,
-        options: {
-          temperature: 0.2,
-        },
-        messages: [
-          {
-            role: "system",
-            content:
-              "You are a senior frontend debugging assistant. Return concise, specific Korean JSON only. Do not include markdown.",
-          },
-          {
-            role: "user",
-            content: prompt,
-          },
-        ],
-      }),
-    });
-
-    const responseBody = await response.json().catch(() => ({}));
-
-    if (!response.ok) {
-      const message =
-        responseBody?.error ||
-        `Ollama request failed (${response.status}). 먼저 'ollama serve'와 'ollama pull ${model}'을 확인해주세요.`;
-
-      return {
-        ok: false,
-        provider: "ollama",
-        code: "ollama_error",
-        message,
-      };
-    }
-
-    const rawText = responseBody?.message?.content || responseBody?.response || "";
-    const analysis = parseJsonFromText(rawText);
-
-    return {
-      ok: true,
-      provider: "ollama",
-      model,
-      analysis: analysis || buildFallbackAnalysis(rawText, "Ollama"),
-      rawText,
-    };
-  } catch (error) {
-    return {
-      ok: false,
-      provider: "ollama",
-      code: "ollama_unavailable",
-      message:
-        `${error?.message || "Ollama 호출에 실패했습니다."} ` +
-        `Ollama가 실행 중인지 확인하고, 필요하면 'ollama pull ${model}'을 실행해주세요.`,
-    };
-  }
-}
-
 async function analyzeErrorWithOpenAI(payload = {}) {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
@@ -404,17 +321,7 @@ async function analyzeErrorWithOpenAI(payload = {}) {
 }
 
 async function analyzeErrorWithConfiguredProvider(payload = {}) {
-  const provider = (process.env.AI_PROVIDER || "auto").toLowerCase();
-
-  if (provider === "ollama") return analyzeErrorWithOllama(payload);
-  if (provider === "openai") return analyzeErrorWithOpenAI(payload);
-
-  if (process.env.OPENAI_API_KEY) {
-    const openAiResult = await analyzeErrorWithOpenAI(payload);
-    if (openAiResult.ok || openAiResult.code !== "quota_exceeded") return openAiResult;
-  }
-
-  return analyzeErrorWithOllama(payload);
+  return analyzeErrorWithOpenAI(payload);
 }
 
 function setupTargetNetworkCapture(mainWindow) {

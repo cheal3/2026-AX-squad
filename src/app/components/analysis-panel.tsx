@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type PointerEvent, type ReactNode, type WheelEvent } from "react";
+import { useEffect, useRef, useState, type PointerEvent, type WheelEvent } from "react";
 import {
   AlertCircle,
   Bot,
@@ -499,6 +499,16 @@ function VariableTable({
 function parseTimestamp(timestamp: string) {
   const value = Number(String(timestamp).replace("ms", ""));
   return Number.isFinite(value) ? value : 0;
+}
+
+function formatElapsedTime(ms: number) {
+  if (!Number.isFinite(ms) || ms <= 0) return "0ms";
+  if (ms < 1000) return `${Math.round(ms)}ms`;
+  if (ms < 60000) return `${(ms / 1000).toFixed(ms < 10000 ? 2 : 1)}s`;
+
+  const minutes = Math.floor(ms / 60000);
+  const seconds = Math.round((ms % 60000) / 1000);
+  return `${minutes}m ${seconds}s`;
 }
 
 function getApiPath(url: string) {
@@ -1559,13 +1569,12 @@ function TraceReport({ trace, story }: { trace: TraceSession; story: FlowStoryIt
   const domCount = story.filter((item) => item.type === "dom").length;
   const firstError = trace.errors[0];
   const firstAction = story.find((item) => item.type === "action");
+  const firstErrorItem = firstError
+    ? story.find((item) => item.error?.id === firstError.id)
+    : undefined;
   const candidateApi = failedApis[0];
-
-  const conclusion = firstError
-    ? `${firstError.type}: ${firstError.message}`
-    : candidateApi
-      ? `${candidateApi.method} ${getApiPath(candidateApi.endpoint)} 요청 실패`
-      : "치명적인 오류 없이 시나리오가 종료되었습니다.";
+  const maxStoryTimestamp = Math.max(0, ...story.map((item) => parseTimestamp(item.timestamp)));
+  const elapsedMs = trace.durationMs || maxStoryTimestamp;
 
   return (
     <div className="border border-border bg-card rounded overflow-hidden">
@@ -1590,7 +1599,8 @@ function TraceReport({ trace, story }: { trace: TraceSession; story: FlowStoryIt
       </div>
 
       <div className="p-4 space-y-4">
-        <div className="grid grid-cols-5 gap-2">
+        <div className="grid grid-cols-2 gap-2 md:grid-cols-6">
+          <ReportMetric label="걸린 시간" value={formatElapsedTime(elapsedMs)} />
           <ReportMetric label="사용자 행동" value={story.filter((item) => item.type === "action").length} />
           <ReportMetric label="함수" value={trace.functions.length} />
           <ReportMetric label="API" value={storyApis.length} />
@@ -1604,11 +1614,28 @@ function TraceReport({ trace, story }: { trace: TraceSession; story: FlowStoryIt
             <div className="text-sm text-foreground mt-1 break-words">
               {firstAction?.title || "사용자 행동이 수집되지 않았습니다."}
             </div>
+            <div className="mt-2 flex flex-wrap gap-1.5 text-[11px] text-muted-foreground">
+              <span className="rounded bg-muted px-2 py-1">
+                시점 {firstAction?.timestamp || "0ms"}
+              </span>
+              {firstAction?.subtitle && (
+                <span className="min-w-0 rounded bg-muted px-2 py-1 break-all">
+                  {truncateText(firstAction.subtitle, 120)}
+                </span>
+              )}
+            </div>
           </div>
           <div className="border border-border rounded p-3">
-            <div className="text-xs text-muted-foreground">결론</div>
+            <div className="text-xs text-muted-foreground">실행 시간</div>
             <div className="text-sm text-foreground mt-1 break-words">
-              {truncateText(conclusion, 180)}
+              전체 Trace는 {formatElapsedTime(elapsedMs)} 동안 수집되었습니다.
+            </div>
+            <div className="mt-2 flex flex-wrap gap-1.5 text-[11px] text-muted-foreground">
+              {trace.startedAt && <span className="rounded bg-muted px-2 py-1">시작 {trace.startedAt}</span>}
+              {trace.completedAt && <span className="rounded bg-muted px-2 py-1">종료 {trace.completedAt}</span>}
+              {firstErrorItem && (
+                <span className="rounded bg-muted px-2 py-1">첫 에러 {firstErrorItem.timestamp}</span>
+              )}
             </div>
           </div>
         </div>
@@ -1951,8 +1978,8 @@ function ErrorAnalysisTool({
         status: "success",
         result: normalizedAnalysis,
         message: result.model
-          ? `${result.provider === "ollama" ? "Ollama" : "OpenAI"} · ${result.model} 분석 완료`
-          : "AI 분석 완료",
+          ? `OpenAI · ${result.model} 분석 완료`
+          : "OpenAI 분석 완료",
       });
     } catch (error) {
       onUpdateAiAnalysis(errorId, {
@@ -2072,7 +2099,7 @@ function ErrorAccordionList({
               key={error.id}
               className={`min-w-0 overflow-hidden rounded border transition-colors ${
                 selected
-                  ? "border-[#ef4444] bg-[#fff1f2] dark:border-[#a98787] dark:bg-[#5f5555]"
+                  ? "border-[#b8c9dd] bg-[#eef4fb] dark:border-[#8b98a5] dark:bg-[#5b636b]"
                   : "border-border bg-muted hover:bg-card dark:bg-muted dark:hover:bg-card"
               }`}
             >
@@ -2087,7 +2114,13 @@ function ErrorAccordionList({
               >
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-medium uppercase text-[#991b1b] dark:text-[#ffecec]">
+                    <span
+                      className={`text-[10px] font-medium uppercase ${
+                        selected
+                          ? "text-[#3f6389] dark:text-[#eef5fb]"
+                          : "text-[#991b1b] dark:text-[#ffecec]"
+                      }`}
+                    >
                       Error {index + 1}
                     </span>
                     <span className="rounded bg-card px-2 py-0.5 text-[10px] text-muted-foreground">
@@ -2151,51 +2184,105 @@ function AiAnalysisComment({
     analysis.cause ||
     "아직 분석 결과가 없습니다.";
   const actionItems = buildCompactActionItems(usableResult, analysis, location);
+  const typingEnabled = status !== "loading";
+  const typedAnalysisSummary = useTypewriterText(analysisSummary, typingEnabled, 1300);
+  const typedActionText = useTypewriterText(actionItems.join("\n"), typingEnabled, 1900);
+  const typedActionItems = typedActionText.split("\n").filter(Boolean);
+
+  if (status === "loading") {
+    return <WorkingRobotAnimation />;
+  }
 
   return (
-    <div className="overflow-hidden rounded border border-border bg-card">
-      <AnalysisStep
-        number={1}
-        title="에러 메시지"
-        body={error.message}
-        meta={location}
-      />
+    <div className="ai-result-stage rounded border border-border bg-card p-4">
+      <div className="ai-robot-result-move">
+        <RobotHeadAvatar />
+      </div>
 
-      <AnalysisStep number={2} title="AI 분석 결과">
-        {status === "loading" ? (
-          <WorkingRobotAnimation compact />
-        ) : (
-          <div className="space-y-2">
-            <div className="text-sm text-foreground break-words [overflow-wrap:anywhere]">
-              {analysisSummary}
+      <div className="ai-result-layout">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="min-h-7 pl-9 text-sm font-semibold leading-7 text-foreground">
+            AI 디버깅 코멘트
+          </div>
+          {message && status !== "error" && (
+            <span className="rounded bg-muted px-2 py-1 text-[11px] text-muted-foreground dark:bg-[#3f3f3f] dark:text-foreground">
+              {message}
+            </span>
+          )}
+        </div>
+
+        <div className="mt-3 grid gap-3">
+          <div className="rounded border border-border bg-muted/50 p-3 dark:bg-[#3f3f3f]">
+            <div className="text-[11px] font-semibold uppercase text-muted-foreground">Error</div>
+            <div className="mt-1 text-sm text-foreground break-words [overflow-wrap:anywhere]">
+              {error.message}
+            </div>
+            <div className="mt-1 text-xs text-muted-foreground break-all">{location}</div>
+          </div>
+
+          <div className="rounded border border-border bg-muted/50 p-3 dark:bg-[#3f3f3f]">
+            <div className="text-[11px] font-semibold uppercase text-muted-foreground">Analysis</div>
+            <div className="ai-typing-text mt-1 min-h-[1.25rem] text-sm text-foreground break-words [overflow-wrap:anywhere]">
+              {typedAnalysisSummary}
             </div>
             {message && status === "error" && (
-              <div className="rounded border border-[#fecaca] bg-[#fff1f2] px-3 py-2 text-xs text-[#991b1b] dark:border-[#a98787] dark:bg-[#5f5555] dark:text-[#ffecec]">
+              <div className="mt-2 rounded border border-[#fecaca] bg-[#fff1f2] px-3 py-2 text-xs text-[#991b1b] dark:border-[#a98787] dark:bg-[#5f5555] dark:text-[#ffecec]">
                 {message}
               </div>
             )}
           </div>
-        )}
-      </AnalysisStep>
 
-      <AnalysisStep number={3} title="확인 / 수정 포인트">
-        {status === "loading" ? (
-          <div className="text-sm text-muted-foreground">
-            분석이 끝나면 확인할 줄과 수정 방향을 정리합니다.
+          <div className="rounded border border-border bg-muted/50 p-3 dark:bg-[#3f3f3f]">
+            <div className="text-[11px] font-semibold uppercase text-muted-foreground">
+              확인 / 수정 포인트
+            </div>
+            <ul className="mt-2 grid gap-2">
+              {typedActionItems.map((item, index) => (
+                <li key={`${item}-${index}`} className="flex gap-2 text-sm text-foreground">
+                  <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#2563eb]" />
+                  <span className="ai-typing-text min-w-0 break-words [overflow-wrap:anywhere]">{item}</span>
+                </li>
+              ))}
+            </ul>
           </div>
-        ) : (
-          <ul className="grid gap-2">
-            {actionItems.map((item, index) => (
-              <li key={`${item}-${index}`} className="flex gap-2 text-sm text-foreground">
-                <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#2563eb]" />
-                <span className="min-w-0 break-words [overflow-wrap:anywhere]">{item}</span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </AnalysisStep>
+        </div>
+      </div>
     </div>
   );
+}
+
+function useTypewriterText(text: string, enabled: boolean, delayMs = 240) {
+  const [visibleText, setVisibleText] = useState("");
+
+  useEffect(() => {
+    if (!enabled) {
+      setVisibleText("");
+      return;
+    }
+
+    setVisibleText("");
+    if (!text) return;
+
+    let intervalId: number | undefined;
+    const timeoutId = window.setTimeout(() => {
+      let index = 0;
+      intervalId = window.setInterval(() => {
+        index = Math.min(text.length, index + 2);
+        setVisibleText(text.slice(0, index));
+
+        if (index >= text.length && intervalId !== undefined) {
+          window.clearInterval(intervalId);
+        }
+      }, 14);
+    }, delayMs);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+      if (intervalId !== undefined) window.clearInterval(intervalId);
+    };
+  }, [delayMs, enabled, text]);
+
+  return visibleText;
 }
 
 function buildCompactActionItems(
@@ -2206,77 +2293,63 @@ function buildCompactActionItems(
   const items = result
     ? [
         result.inspectFirst ? `확인: ${result.inspectFirst}` : `확인: ${location} 주변 코드`,
+        result.debugSteps[0] ? `절차: ${result.debugSteps[0]}` : "",
         result.fixSuggestion ? `수정: ${result.fixSuggestion}` : "",
       ]
     : [
         analysis.focus ? `확인: ${analysis.focus}` : `확인: ${location} 주변 코드`,
         analysis.actions[0] ? `수정: ${analysis.actions[0]}` : "",
+        analysis.actions[1] ? `추가: ${analysis.actions[1]}` : "",
       ];
 
   return items
     .filter((item): item is string => Boolean(item))
-    .slice(0, 2);
+    .slice(0, 3);
 }
 
-function AnalysisStep({
-  number,
-  title,
-  body,
-  meta,
-  children,
-}: {
-  number: number;
-  title: string;
-  body?: string;
-  meta?: string;
-  children?: ReactNode;
-}) {
+function RobotHeadAvatar() {
   return (
-    <section className="border-b border-border p-4 last:border-b-0">
-      <div className="mb-2 flex items-center gap-2">
-        <span
-          className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#eff6ff] text-xs font-semibold text-[#1d4ed8] dark:bg-[#54616c] dark:text-[#eaf4ff]"
-        >
-          {number}
-        </span>
-        <div className="text-sm font-semibold text-foreground">{title}</div>
-      </div>
-
-      {body && (
-        <div className="text-sm text-foreground break-words [overflow-wrap:anywhere]">{body}</div>
-      )}
-      {meta && <div className="mt-1 text-xs text-muted-foreground break-all">{meta}</div>}
-      {children}
-    </section>
+    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-[#bfdbfe] bg-[#eff6ff] text-[#2563eb] dark:border-[#7f9fba] dark:bg-[#54616c] dark:text-[#eaf4ff]">
+      <Bot className="h-4 w-4" />
+    </div>
   );
 }
 
-function WorkingRobotAnimation({ compact = false }: { compact?: boolean }) {
+function RobotGearAvatar() {
   return (
-    <div className={`overflow-hidden rounded border border-[#bfdbfe] bg-[#eff6ff] dark:border-[#7f9fba] dark:bg-[#54616c] ${compact ? "px-3 py-3" : "px-4 py-5"}`}>
+    <div className="relative flex h-14 w-14 shrink-0 items-center justify-center">
+      <svg
+        viewBox="0 0 100 100"
+        className="absolute inset-0 animate-spin text-[#2563eb] dark:text-[#bfdbfe]"
+        style={{ animationDuration: "5.5s" }}
+        aria-hidden="true"
+      >
+        <path
+          fill="currentColor"
+          fillRule="evenodd"
+          d="M56.5 7 59 17.8a33.6 33.6 0 0 1 7.1 2.9l9.3-5.9 9.8 9.8-5.9 9.3a33.6 33.6 0 0 1 2.9 7.1L93 43.5v13l-10.8 2.5a33.6 33.6 0 0 1-2.9 7.1l5.9 9.3-9.8 9.8-9.3-5.9a33.6 33.6 0 0 1-7.1 2.9L56.5 93h-13L41 82.2a33.6 33.6 0 0 1-7.1-2.9l-9.3 5.9-9.8-9.8 5.9-9.3a33.6 33.6 0 0 1-2.9-7.1L7 56.5v-13L17.8 41a33.6 33.6 0 0 1 2.9-7.1l-5.9-9.3 9.8-9.8 9.3 5.9a33.6 33.6 0 0 1 7.1-2.9L43.5 7h13ZM50 72a22 22 0 1 0 0-44 22 22 0 0 0 0 44Z"
+        />
+        <circle cx="50" cy="50" r="26" fill="#dbeafe" className="dark:fill-[#3b4f66]" />
+        <circle cx="50" cy="50" r="21" fill="white" className="dark:fill-[#27384b]" />
+      </svg>
+      <div className="relative flex h-8 w-8 items-center justify-center rounded-full text-[#2563eb] dark:text-[#eaf4ff]">
+        <Bot className="h-5 w-5" />
+      </div>
+    </div>
+  );
+}
+
+function WorkingRobotAnimation() {
+  return (
+    <div className="overflow-hidden rounded border border-[#bfdbfe] bg-[#eff6ff] px-4 py-5 dark:border-[#7f9fba] dark:bg-[#54616c]">
       <div className="flex items-center justify-center gap-3">
-        <div className="relative flex h-12 w-12 shrink-0 items-center justify-center">
-          <svg
-            viewBox="0 0 100 100"
-            className="absolute inset-0 animate-spin text-[#2563eb] dark:text-[#bfdbfe]"
-            style={{ animationDuration: "5.5s" }}
-            aria-hidden="true"
-          >
-            <path
-              fill="currentColor"
-              fillRule="evenodd"
-              d="M56.5 7 59 17.8a33.6 33.6 0 0 1 7.1 2.9l9.3-5.9 9.8 9.8-5.9 9.3a33.6 33.6 0 0 1 2.9 7.1L93 43.5v13l-10.8 2.5a33.6 33.6 0 0 1-2.9 7.1l5.9 9.3-9.8 9.8-9.3-5.9a33.6 33.6 0 0 1-7.1 2.9L56.5 93h-13L41 82.2a33.6 33.6 0 0 1-7.1-2.9l-9.3 5.9-9.8-9.8 5.9-9.3a33.6 33.6 0 0 1-2.9-7.1L7 56.5v-13L17.8 41a33.6 33.6 0 0 1 2.9-7.1l-5.9-9.3 9.8-9.8 9.3 5.9a33.6 33.6 0 0 1 7.1-2.9L43.5 7h13ZM50 72a22 22 0 1 0 0-44 22 22 0 0 0 0 44Z"
-            />
-            <circle cx="50" cy="50" r="26" fill="#dbeafe" className="dark:fill-[#3b4f66]" />
-            <circle cx="50" cy="50" r="21" fill="white" className="dark:fill-[#27384b]" />
-          </svg>
-          <div className="relative flex h-7 w-7 items-center justify-center rounded-full text-[#2563eb] dark:text-[#eaf4ff]">
-            <Bot className="h-4 w-4" />
-          </div>
-        </div>
+        <RobotGearAvatar />
         <div className="min-w-0">
           <div className="text-sm font-medium leading-6 text-[#1d4ed8] dark:text-[#eaf4ff]">
             AI가 trace를 분석 중입니다
+          </div>
+          <div className="text-xs text-[#3f6389] dark:text-[#eaf4ff]">
+            원인 후보와 확인 지점을 정리하고 있습니다.
           </div>
         </div>
       </div>
@@ -3096,10 +3169,10 @@ function RobotAnalysisSummary({ text }: { text: string }) {
   );
 }
 
-function ReportMetric({ label, value }: { label: string; value: number }) {
+function ReportMetric({ label, value }: { label: string; value: number | string }) {
   return (
-    <div className="border border-border bg-card rounded p-3">
-      <div className="text-[11px] text-muted-foreground">{label}</div>
+    <div className="min-w-0 border border-border bg-card rounded p-3">
+      <div className="whitespace-nowrap break-keep text-[11px] text-muted-foreground">{label}</div>
       <div className="text-lg font-medium text-foreground mt-1">{value}</div>
     </div>
   );

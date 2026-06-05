@@ -53,6 +53,7 @@ const preferredPort = 5173;
 const managedRuntimeDir = path.join(rootDir, ".debug-browser-runtimes");
 
 const electronChromiumMap = {
+  "43.0.0-alpha.1": "149.0.7827.0",
   "42.0.0": "148.0.7778.96",
   "41.0.0": "146.0.7680.65",
   "40.0.0": "144.0.7559.60",
@@ -61,6 +62,11 @@ const electronChromiumMap = {
 };
 
 const managedElectronOptions = [
+  {
+    id: "electron-43-alpha-1",
+    electronVersion: "43.0.0-alpha.1",
+    description: "Chromium 149 확인용 alpha",
+  },
   {
     id: "electron-42",
     electronVersion: "42.0.0",
@@ -146,6 +152,42 @@ function getBundledElectronVersion() {
 
 function getChromiumVersion(electronVersion) {
   return electronVersion ? electronChromiumMap[electronVersion] : undefined;
+}
+
+function parseVersionParts(version) {
+  return String(version || "")
+    .split(".")
+    .map((part) => Number.parseInt(part, 10) || 0);
+}
+
+function compareVersionsDesc(leftVersion, rightVersion) {
+  if (!leftVersion && !rightVersion) return 0;
+  if (!leftVersion) return 1;
+  if (!rightVersion) return -1;
+
+  const leftParts = parseVersionParts(leftVersion);
+  const rightParts = parseVersionParts(rightVersion);
+  const maxLength = Math.max(leftParts.length, rightParts.length);
+
+  for (let index = 0; index < maxLength; index += 1) {
+    const leftPart = leftParts[index] || 0;
+    const rightPart = rightParts[index] || 0;
+
+    if (leftPart !== rightPart) {
+      return rightPart - leftPart;
+    }
+  }
+
+  return 0;
+}
+
+function sortRuntimeOptionsByChromiumDesc(options) {
+  return [...options].sort((left, right) => {
+    const chromiumOrder = compareVersionsDesc(left.chromiumVersion, right.chromiumVersion);
+    if (chromiumOrder !== 0) return chromiumOrder;
+
+    return compareVersionsDesc(left.electronVersion, right.electronVersion);
+  });
 }
 
 function formatVersionLabel(electronVersion, chromiumVersion) {
@@ -302,7 +344,7 @@ function loadRuntimeOptions() {
     }
   }
 
-  return options;
+  return sortRuntimeOptionsByChromiumDesc(options);
 }
 
 function formatRuntimeOption(option, index, selectedIndex) {
@@ -409,7 +451,9 @@ async function selectRuntime() {
     : undefined;
 
   if (requestedOption) return requestedOption;
-  if (!process.stdin.isTTY) return options[0];
+  if (!process.stdin.isTTY) {
+    return options.find((option) => option.id === "bundled") || options[0];
+  }
 
   return selectRuntimeWithKeyboard(options);
 }

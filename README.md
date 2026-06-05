@@ -49,28 +49,13 @@ npm run electron:dev
 강조됩니다.
 
 선택 목록에는 Electron 버전과 해당 Electron에 포함된 Chromium 버전이 함께 표시됩니다.
-현재 제공하는 관리형 후보는 Electron 42/41/40/39/38이며, 각각 Chromium
-148/146/144/142/140 계열을 사용합니다. 프로젝트에 이미 설치된 Electron 버전은 중복
-항목 없이 해당 후보에서 바로 재사용하고, 로컬에 없는 버전은 다운로드 여부를 한 번 더
+현재 제공하는 관리형 후보는 Electron 43 alpha/42/41/40/39/38이며, 각각 Chromium
+149/148/146/144/142/140 계열을 사용합니다. 프로젝트에 이미 설치된 Electron 버전은
+중복 항목 없이 해당 후보에서 바로 재사용하고, 로컬에 없는 버전은 다운로드 여부를 한 번 더
 물어본 뒤 승인 시 `.debug-browser-runtimes/`에 설치해 실행합니다.
 
-무료 로컬 AI 분석을 사용하려면 Ollama를 설치한 뒤 모델을 받아 실행합니다.
-
-```bash
-ollama pull qwen2.5-coder:7b
-ollama serve
-```
-
-프로젝트 루트의 `.env` 또는 `.env.local`에 아래처럼 설정하면 OpenAI API 비용 없이
-로컬 모델로 분석합니다.
-
-```bash
-AI_PROVIDER=ollama
-OLLAMA_MODEL=qwen2.5-coder:7b
-OLLAMA_BASE_URL=http://127.0.0.1:11434
-```
-
-OpenAI API로 분석하고 싶다면 아래 값을 설정합니다.
+AI 분석을 사용하려면 프로젝트 루트의 `.env` 또는 `.env.local`에 OpenAI API 설정을
+추가합니다.
 
 ```bash
 OPENAI_API_KEY=발급받은_API_키
@@ -78,9 +63,8 @@ OPENAI_API_KEY=발급받은_API_키
 OPENAI_MODEL=gpt-4.1-mini
 ```
 
-API 키는 renderer 화면에 노출하지 않고 Electron main process에서만 읽습니다. 기본
-모드는 `auto`라서 `OPENAI_API_KEY`가 있으면 OpenAI를, 없으면 Ollama를 시도합니다.
-Ollama도 실행 중이 아니면 실패 안내와 로컬 규칙 기반 fallback 분석을 표시합니다.
+API 키는 renderer 화면에 노출하지 않고 Electron main process에서만 읽습니다. 키가
+없거나 호출에 실패하면 분석 카드에 OpenAI 오류 메시지를 표시합니다.
 
 현재 기본 테스트 URL은 `https://ims.hwgeneralins.com/general/jsp/smartScanner.jsp`입니다. 일반 브라우저의 iframe은
 외부 사이트 보안 정책 때문에 막힐 수 있으므로, 실제 사이트 테스트는 Electron
@@ -565,11 +549,8 @@ Flow 도식 가시성 및 네트워크 필터 개선:
   마스킹하고 긴 문자열은 잘라서 전송합니다.
 - 분석 탭의 `AI Error Analyzer`에는 `AI 분석 실행` 버튼, 분석 중/성공/실패 상태,
   AI 결론/원인 후보/판단 근거/디버깅 절차/수정 방향 UI를 추가했습니다.
-- 무료 로컬 분석을 위해 Ollama provider를 추가했습니다.
-- `AI_PROVIDER=ollama`, `OLLAMA_MODEL`, `OLLAMA_BASE_URL` 설정을 지원하며, 기본
-  모델은 `qwen2.5-coder:7b`, 기본 주소는 `http://127.0.0.1:11434`입니다.
-- 기본 `AI_PROVIDER=auto`에서는 OpenAI 키가 있으면 OpenAI를 사용하고, 키가 없으면
-  Ollama로 자동 fallback합니다.
+- AI 분석 경로를 OpenAI 전용으로 정리해 `.env`의 `OPENAI_API_KEY`,
+  `OPENAI_MODEL`만 사용하도록 단순화했습니다.
 - `도식 보기` 명칭을 `Flow 분석`으로 변경했습니다.
 - 네트워크 필터 활성 색상을 채도가 낮은 블루-그레이 톤으로 조정했습니다.
 - 도식 보기 내부 네트워크 필터는 3열 그리드로 정렬하고 버튼 크기를 맞췄습니다.
@@ -645,12 +626,31 @@ Flow 도식 가시성 및 네트워크 필터 개선:
   `browser-runtimes.json` 등록을 통해 다른 Electron 실행 파일을 선택할 수 있습니다.
 - 런타임 선택 프롬프트를 방향키 기반 메뉴로 개선하고, Electron 버전과 Chromium 버전을
   함께 표시하도록 보강했습니다.
-- Electron 42/41/40/39/38 관리형 후보를 추가하고, 선택한 버전이 로컬에 없으면 승인 후
-  `.debug-browser-runtimes/`에 다운로드/설치해 실행하도록 구성했습니다.
+- Electron 43 alpha/42/41/40/39/38 관리형 후보를 추가하고, 선택한 버전이 로컬에
+  없으면 승인 후 `.debug-browser-runtimes/`에 다운로드/설치해 실행하도록 구성했습니다.
 - 현재 프로젝트 Electron과 관리형 Electron 42가 중복 표시되지 않도록 메뉴를 정리하고,
   직접 경로 입력 항목을 제거했습니다.
 - 앱 상단 런타임 배지에서 Chromium 버전이 중복 표시되지 않도록 수정했습니다.
 - `npm run build`로 검증했습니다.
+
+### 2026-06-05
+
+최종 제출 전 사용 흐름과 성능 안정성을 정리했습니다.
+
+완료된 작업:
+
+- 기본 진입 URL을 테스트용 `debug-error.html`에서 실제 스마트스캐너 서비스
+  `https://ims.hwgeneralins.com/general/jsp/smartScanner.jsp`로 복구했습니다.
+- 주소창 placeholder도 스마트스캐너 URL 기준으로 맞춰 최종 실행 시 개발용 URL 흔적이
+  보이지 않도록 정리했습니다.
+- Trace 수집 중 `timeline`, `apiCalls`, `functions`, `errors`, `codeLocations`가
+  무한정 늘어나지 않도록 최근 데이터 기준 상한을 추가했습니다. 장시간 테스트에서도
+  분석 패널 렌더링이 과도하게 느려지는 것을 방지하기 위한 제출용 최적화입니다.
+- AI 분석 경로는 OpenAI 전용으로 정리하고, 로컬 모델 provider 안내와 코드 분기를
+  제거했습니다.
+- AI 분석 결과 UI는 로딩 중에는 톱니바퀴 로봇을 유지하고, 완료 후에는 로봇 머리와
+  타이핑 애니메이션으로 결과가 표시되도록 정리했습니다.
+- `node --check electron/main.cjs`와 `npm run build`로 검증했습니다.
 
 대상 서비스 코드에서 함수 Flow를 기록하는 예시:
 
