@@ -42,12 +42,8 @@ import type {
 
 interface AnalysisPanelProps {
   trace: TraceSession;
-  debuggerScripts: DebuggerScript[];
-  logpointStatus?: string;
   networkResourceFilter: NetworkResourceFilterSelection;
   onNetworkResourceFilterChange: (filter: NetworkResourceFilterSelection) => void;
-  onApplyLogpoints: (options: LogpointFormValue) => void;
-  onLoadScriptSource: (scriptId: string) => Promise<DebuggerScriptSource>;
 }
 
 type DebugTab = "timeline" | "network" | "flow" | "errors";
@@ -75,27 +71,6 @@ interface AiDebugAnalysis {
   fixSuggestion?: string;
   confidence?: string;
   missingData?: string[];
-}
-
-export interface DebuggerScript {
-  scriptId: string;
-  url: string;
-  sourceMapURL?: string;
-  startLine?: number;
-  endLine?: number;
-}
-
-export interface LogpointFormValue {
-  url: string;
-  startLine: number;
-  endLine: number;
-}
-
-export interface DebuggerScriptSource {
-  ok: boolean;
-  scriptId?: string;
-  source: string;
-  message?: string;
 }
 
 function EmptyState({ title, description }: { title: string; description: string }) {
@@ -643,6 +618,14 @@ function shouldShowApiCall(apiCall: TraceApiCall, filters: NetworkResourceFilter
   return filters.includes(getApiFilterCategory(apiCall));
 }
 
+function shouldShowFlowItemByNetworkFilter(
+  item: FlowStoryItem,
+  filters: NetworkResourceFilterSelection
+) {
+  if (!item.apiCall) return true;
+  return shouldShowApiCall(item.apiCall, filters);
+}
+
 function stringifySearchValue(value: unknown, depth = 0): string {
   if (value === null || value === undefined) return "";
   if (depth > 4) return "";
@@ -1167,7 +1150,6 @@ function FlowStoryCard({
   expanded,
   searchMatched,
   onToggle,
-  onTraceApiCaller,
   onInspectError,
 }: {
   item: FlowStoryItem;
@@ -1175,7 +1157,6 @@ function FlowStoryCard({
   expanded: boolean;
   searchMatched: boolean;
   onToggle: () => void;
-  onTraceApiCaller: (apiCall: TraceApiCall) => void;
   onInspectError: (errorId: string) => void;
 }) {
   const Icon =
@@ -1297,7 +1278,7 @@ function FlowStoryCard({
           {item.functionNode && <FunctionStoryDetail functionNode={item.functionNode} />}
           {item.apiCall && (
             <>
-              <ApiParameterSummary apiCall={item.apiCall} onTraceCaller={onTraceApiCaller} />
+              <ApiParameterSummary apiCall={item.apiCall} />
               {getApiInitiator(item.apiCall) && (
                 <JSONViewer title="Called By / Initiator Stack" data={getApiInitiator(item.apiCall)} />
               )}
@@ -1353,15 +1334,7 @@ function FunctionStoryDetail({ functionNode }: { functionNode: TraceFunctionNode
   );
 }
 
-function ApiParameterSummary({
-  apiCall,
-  onTraceCaller,
-  showTraceButton = true,
-}: {
-  apiCall: TraceApiCall;
-  onTraceCaller: (apiCall: TraceApiCall) => void;
-  showTraceButton?: boolean;
-}) {
+function ApiParameterSummary({ apiCall }: { apiCall: TraceApiCall }) {
   const caller = getCallerFrame(apiCall);
   const query = getRequestQuery(apiCall.endpoint);
   const body = getRequestBody(apiCall.request);
@@ -1383,23 +1356,7 @@ function ApiParameterSummary({
               : "호출 함수 후보를 찾지 못했습니다."}
           </div>
         </div>
-        {showTraceButton && caller?.sourceFile && caller.line && (
-          <button
-            type="button"
-            onClick={() => onTraceCaller(apiCall)}
-            className="shrink-0 px-3 py-1.5 rounded bg-[#f36910] text-white text-xs hover:bg-[#d85a0d]"
-          >
-            이 호출 지점 추적
-          </button>
-        )}
       </div>
-
-      {showTraceButton && caller?.sourceFile && caller.line && (
-        <div className="text-[11px] text-muted-foreground bg-card border border-border rounded p-2">
-          버튼을 누르면 다음 실행부터 이 API 호출 라인 주변에 logpoint가 걸리고, 해당
-          함수의 local 변수/파라미터가 Flow 함수 카드로 수집됩니다.
-        </div>
-      )}
 
       <div className="grid gap-3 md:grid-cols-2">
         <div className="border border-border bg-card rounded overflow-hidden">
@@ -2201,7 +2158,7 @@ function AiAnalysisComment({
 
       <div className="ai-result-layout">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="min-h-7 pl-9 text-sm font-semibold leading-7 text-foreground">
+          <div className="min-h-6 pl-8 text-sm font-semibold leading-6 text-foreground">
             AI 디버깅 코멘트
           </div>
           {message && status !== "error" && (
@@ -2307,34 +2264,61 @@ function buildCompactActionItems(
     .slice(0, 3);
 }
 
+function RobotFaceMark({ scale = "sm", blinking = false }: { scale?: "sm" | "md" | "lg"; blinking?: boolean }) {
+  const sizeClass =
+    scale === "lg" ? "h-[24px] w-[30px]" : scale === "md" ? "h-[20px] w-[24px]" : "h-[15px] w-[19px]";
+  const eyeClass =
+    scale === "lg"
+      ? "top-[9px] h-[4px] w-[4px]"
+      : scale === "md"
+        ? "top-[7px] h-[3.5px] w-[3.5px]"
+        : "top-[6px] h-[3px] w-[3px]";
+  const mouthClass =
+    scale === "lg"
+      ? "bottom-[6px] h-[2px] w-[10px]"
+      : scale === "md"
+        ? "bottom-[5px] h-[2px] w-[8px]"
+        : "bottom-[4px] h-[2px] w-[7px]";
+  const antennaClass =
+    scale === "lg"
+      ? "-top-[7px] h-[7px]"
+      : scale === "md"
+        ? "-top-[6px] h-[6px]"
+        : "-top-[5px] h-[5px]";
+  const antennaDotClass =
+    scale === "lg"
+      ? "-top-[11px] h-[6px] w-[6px]"
+      : scale === "md"
+        ? "-top-[9px] h-[5px] w-[5px]"
+        : "-top-[8px] h-[5px] w-[5px]";
+  const eyeAnimationClass = blinking ? "ai-robot-eye-blink" : "";
+
+  return (
+    <span
+      className={`relative block ${sizeClass} rounded-[7px] border-[1.5px] border-current bg-white text-current dark:bg-[#27384b]`}
+      aria-hidden="true"
+    >
+      <span className={`absolute ${antennaClass} left-1/2 w-px -translate-x-1/2 bg-current`} />
+      <span className={`absolute ${antennaDotClass} left-1/2 -translate-x-1/2 rounded-full bg-current`} />
+      <span className={`absolute left-[25%] ${eyeClass} ${eyeAnimationClass} rounded-full bg-current`} />
+      <span className={`absolute right-[25%] ${eyeClass} ${eyeAnimationClass} rounded-full bg-current`} />
+      <span className={`absolute left-1/2 ${mouthClass} -translate-x-1/2 rounded-full bg-[#93c5fd] dark:bg-[#b9d8ff]`} />
+    </span>
+  );
+}
+
 function RobotHeadAvatar() {
   return (
-    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-[#bfdbfe] bg-[#eff6ff] text-[#2563eb] dark:border-[#7f9fba] dark:bg-[#54616c] dark:text-[#eaf4ff]">
-      <Bot className="h-4 w-4" />
+    <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-[#bfdbfe] bg-[#eff6ff] text-[#2563eb] dark:border-[#7f9fba] dark:bg-[#54616c] dark:text-[#eaf4ff]">
+      <RobotFaceMark />
     </div>
   );
 }
 
-function RobotGearAvatar() {
+function ThinkingRobotAvatar() {
   return (
-    <div className="relative flex h-14 w-14 shrink-0 items-center justify-center">
-      <svg
-        viewBox="0 0 100 100"
-        className="absolute inset-0 animate-spin text-[#2563eb] dark:text-[#bfdbfe]"
-        style={{ animationDuration: "5.5s" }}
-        aria-hidden="true"
-      >
-        <path
-          fill="currentColor"
-          fillRule="evenodd"
-          d="M56.5 7 59 17.8a33.6 33.6 0 0 1 7.1 2.9l9.3-5.9 9.8 9.8-5.9 9.3a33.6 33.6 0 0 1 2.9 7.1L93 43.5v13l-10.8 2.5a33.6 33.6 0 0 1-2.9 7.1l5.9 9.3-9.8 9.8-9.3-5.9a33.6 33.6 0 0 1-7.1 2.9L56.5 93h-13L41 82.2a33.6 33.6 0 0 1-7.1-2.9l-9.3 5.9-9.8-9.8 5.9-9.3a33.6 33.6 0 0 1-2.9-7.1L7 56.5v-13L17.8 41a33.6 33.6 0 0 1 2.9-7.1l-5.9-9.3 9.8-9.8 9.3 5.9a33.6 33.6 0 0 1 7.1-2.9L43.5 7h13ZM50 72a22 22 0 1 0 0-44 22 22 0 0 0 0 44Z"
-        />
-        <circle cx="50" cy="50" r="26" fill="#dbeafe" className="dark:fill-[#3b4f66]" />
-        <circle cx="50" cy="50" r="21" fill="white" className="dark:fill-[#27384b]" />
-      </svg>
-      <div className="relative flex h-8 w-8 items-center justify-center rounded-full text-[#2563eb] dark:text-[#eaf4ff]">
-        <Bot className="h-5 w-5" />
-      </div>
+    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border border-[#bfdbfe] bg-white text-[#2563eb] shadow-sm dark:border-[#7f9fba] dark:bg-[#27384b] dark:text-[#eaf4ff]">
+      <RobotFaceMark scale="lg" blinking />
     </div>
   );
 }
@@ -2343,7 +2327,7 @@ function WorkingRobotAnimation() {
   return (
     <div className="overflow-hidden rounded border border-[#bfdbfe] bg-[#eff6ff] px-4 py-5 dark:border-[#7f9fba] dark:bg-[#54616c]">
       <div className="flex items-center justify-center gap-3">
-        <RobotGearAvatar />
+        <ThinkingRobotAvatar />
         <div className="min-w-0">
           <div className="text-sm font-medium leading-6 text-[#1d4ed8] dark:text-[#eaf4ff]">
             AI가 trace를 분석 중입니다
@@ -2364,7 +2348,6 @@ function FlowGraphDialog({
   trace,
   networkResourceFilter,
   networkSearchQuery,
-  visibleApiCount,
   aiAnalysisByErrorId,
   onNetworkResourceFilterChange,
   onNetworkSearchChange,
@@ -2376,7 +2359,6 @@ function FlowGraphDialog({
   trace: TraceSession;
   networkResourceFilter: NetworkResourceFilterSelection;
   networkSearchQuery: string;
-  visibleApiCount: number;
   aiAnalysisByErrorId: Record<string, AiAnalysisState>;
   onNetworkResourceFilterChange: (filter: NetworkResourceFilterSelection) => void;
   onNetworkSearchChange: (query: string) => void;
@@ -2420,8 +2402,10 @@ function FlowGraphDialog({
   } | null>(null);
   const graphViewportRef = useRef<HTMLDivElement | null>(null);
   const graphItems = story
+    .filter((item) => shouldShowFlowItemByNetworkFilter(item, networkResourceFilter))
     .filter((item) => ["action", "function", "api", "error", "scenario", "dom"].includes(item.type))
     .slice(0, 32);
+  const graphApiCount = graphItems.filter((item) => item.apiCall).length;
   const [selectedId, setSelectedId] = useState<string | null>(graphItems[0]?.id || null);
   const selectedItem = graphItems.find((item) => item.id === selectedId) || graphItems[0];
   const nodeWidth = 260;
@@ -2617,6 +2601,17 @@ function FlowGraphDialog({
     });
   };
 
+  useEffect(() => {
+    if (graphItems.length === 0) {
+      setSelectedId(null);
+      return;
+    }
+
+    if (!selectedId || !graphItems.some((item) => item.id === selectedId)) {
+      setSelectedId(graphItems[0].id);
+    }
+  }, [graphItems, selectedId]);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
@@ -2683,7 +2678,7 @@ function FlowGraphDialog({
           <NetworkResourceFilterBar
             value={networkResourceFilter}
             totalCount={trace.apiCalls.length}
-            visibleCount={visibleApiCount}
+            visibleCount={graphApiCount}
             searchQuery={networkSearchQuery}
             onChange={onNetworkResourceFilterChange}
             onSearchChange={onNetworkSearchChange}
@@ -3126,8 +3121,6 @@ function FlowNodeDetailPanel({
               <>
                 <ApiParameterSummary
                   apiCall={selectedItem.apiCall}
-                  onTraceCaller={() => undefined}
-                  showTraceButton={false}
                 />
                 {getApiInitiator(selectedItem.apiCall) && (
                   <JSONViewer
@@ -3350,275 +3343,10 @@ function TimelineInlineDetail({ event }: { event: TraceTimelineEvent }) {
   );
 }
 
-function getScriptLabel(url: string) {
-  try {
-    const parsedUrl = new URL(url);
-    const pathParts = parsedUrl.pathname.split("/").filter(Boolean);
-    return pathParts.slice(-2).join("/") || parsedUrl.hostname;
-  } catch {
-    const pathParts = url.split("/").filter(Boolean);
-    return pathParts.slice(-2).join("/") || url;
-  }
-}
-
-function LogpointControls({
-  scripts,
-  status,
-  onApply,
-  onLoadScriptSource,
-}: {
-  scripts: DebuggerScript[];
-  status?: string;
-  onApply: (options: LogpointFormValue) => void;
-  onLoadScriptSource: (scriptId: string) => Promise<DebuggerScriptSource>;
-}) {
-  const [url, setUrl] = useState("");
-  const [scriptFilter, setScriptFilter] = useState("");
-  const [selectedScriptId, setSelectedScriptId] = useState<string | null>(null);
-  const [startLine, setStartLine] = useState("1");
-  const [endLine, setEndLine] = useState("1");
-  const [scriptSource, setScriptSource] = useState("");
-  const [sourceStatus, setSourceStatus] = useState("");
-  const recentScripts = scripts
-    .filter((script) => script.url && !script.url.startsWith("extensions::"))
-    .slice(-80)
-    .reverse();
-  const filteredScripts = recentScripts.filter((script) => {
-    const keyword = scriptFilter.trim().toLowerCase();
-    if (!keyword) return true;
-
-    return script.url.toLowerCase().includes(keyword);
-  });
-
-  const selectScript = async (script: DebuggerScript) => {
-    const firstLine = typeof script.startLine === "number" ? script.startLine + 1 : 1;
-    const lastLine =
-      typeof script.endLine === "number" && script.endLine >= firstLine
-        ? Math.min(script.endLine + 1, firstLine + 20)
-        : firstLine;
-
-    setSelectedScriptId(script.scriptId);
-    setUrl(script.url);
-    setStartLine(String(firstLine));
-    setEndLine(String(lastLine));
-    setScriptSource("");
-    setSourceStatus("코드 불러오는 중...");
-
-    try {
-      const result = await onLoadScriptSource(script.scriptId);
-      if (result.ok) {
-        setScriptSource(result.source);
-        setSourceStatus("");
-      } else {
-        setSourceStatus(result.message || "코드를 불러오지 못했습니다.");
-      }
-    } catch (error) {
-      setSourceStatus(error instanceof Error ? error.message : "코드를 불러오지 못했습니다.");
-    }
-  };
-
-  const selectLine = (lineNumber: number) => {
-    const currentStart = Number(startLine);
-    const currentEnd = Number(endLine);
-
-    if (!Number.isFinite(currentStart) || lineNumber < currentStart || lineNumber < currentEnd) {
-      setStartLine(String(lineNumber));
-      setEndLine(String(lineNumber));
-      return;
-    }
-
-    setEndLine(String(lineNumber));
-  };
-
-  const apply = () => {
-    const parsedStart = Number(startLine);
-    const parsedEnd = Number(endLine || startLine);
-    if (!url.trim() || !Number.isFinite(parsedStart)) return;
-
-    onApply({
-      url: url.trim(),
-      startLine: parsedStart,
-      endLine: Number.isFinite(parsedEnd) ? parsedEnd : parsedStart,
-    });
-  };
-
-  return (
-    <div className="border border-border rounded bg-muted text-foreground p-3 space-y-3">
-      <div>
-        <div className="text-sm font-medium text-foreground">선택 구간 Logpoint</div>
-        <div className="text-xs text-muted-foreground mt-1">
-          아래 순서대로 스크립트와 라인을 선택한 뒤 Trace를 시작하세요.
-        </div>
-      </div>
-
-      <div className="grid grid-cols-3 gap-2 text-[11px]">
-        <div className="rounded border border-border bg-card p-2">
-          <div className="font-medium text-[#f36910]">1. 스크립트 선택</div>
-          <div className="text-muted-foreground mt-1">목록에서 실행 파일을 클릭</div>
-        </div>
-        <div className="rounded border border-border bg-card p-2">
-          <div className="font-medium text-[#f36910]">2. 라인 지정</div>
-          <div className="text-muted-foreground mt-1">시작/종료 라인 입력</div>
-        </div>
-        <div className="rounded border border-border bg-card p-2">
-          <div className="font-medium text-[#f36910]">3. 적용 후 실행</div>
-          <div className="text-muted-foreground mt-1">Start Trace 후 페이지 조작</div>
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <input
-          value={scriptFilter}
-          onChange={(event) => setScriptFilter(event.target.value)}
-          placeholder="스크립트 검색: LoginForm, auth, /assets/index"
-          className="w-full bg-card border border-border rounded px-2 py-1.5 text-xs text-foreground placeholder:text-muted-foreground outline-none focus:border-[#f36910] focus:ring-2 focus:ring-[#f36910]/15"
-        />
-
-        <div className="border border-border rounded overflow-hidden bg-card">
-          <div className="px-2 py-1.5 border-b border-border bg-muted text-[11px] text-muted-foreground flex items-center justify-between gap-2">
-            <span>감지된 스크립트 목록</span>
-            <span>{filteredScripts.length}개 표시</span>
-          </div>
-          <div className="max-h-48 overflow-auto">
-            {filteredScripts.length > 0 ? (
-              filteredScripts.slice(0, 60).map((script) => {
-                const selected = selectedScriptId === script.scriptId;
-                const start = typeof script.startLine === "number" ? script.startLine + 1 : "?";
-                const end = typeof script.endLine === "number" ? script.endLine + 1 : "?";
-
-                return (
-                  <button
-                    key={`${script.scriptId}-${script.url}`}
-                    type="button"
-                    onClick={() => selectScript(script)}
-                    className={`w-full px-2 py-2 text-left border-b border-border last:border-b-0 ${
-                      selected
-                        ? "bg-muted"
-                        : "bg-card hover:bg-muted"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-xs text-foreground truncate font-medium">
-                        {getScriptLabel(script.url)}
-                      </span>
-                      <span className="text-[10px] text-muted-foreground shrink-0">
-                        {start}-{end}
-                      </span>
-                    </div>
-                    <div className="text-[10px] text-muted-foreground truncate mt-0.5">
-                      {script.url}
-                    </div>
-                  </button>
-                );
-              })
-            ) : (
-              <div className="px-2 py-3 text-xs text-muted-foreground text-center">
-                감지된 스크립트가 없거나 검색 결과가 없습니다.
-              </div>
-            )}
-          </div>
-        </div>
-
-        {url ? (
-          <div className="rounded border border-border bg-muted p-2">
-            <div className="text-[11px] font-medium text-[#f36910] mb-1">선택된 스크립트</div>
-            <div className="text-[11px] text-foreground break-all">{url}</div>
-          </div>
-        ) : (
-          <div className="rounded border border-border bg-muted p-2 text-[11px] text-muted-foreground">
-            아직 스크립트가 선택되지 않았습니다. 위 목록에서 항목을 먼저 클릭하세요.
-          </div>
-        )}
-
-        <input
-          value={url}
-          onChange={(event) => {
-            setSelectedScriptId(null);
-            setUrl(event.target.value);
-          }}
-          placeholder="선택된 script URL"
-          className="w-full bg-card border border-border rounded px-2 py-1.5 text-xs text-foreground placeholder:text-muted-foreground outline-none focus:border-[#f36910] focus:ring-2 focus:ring-[#f36910]/15"
-        />
-        <div className="grid grid-cols-[1fr_1fr_auto] gap-2">
-          <input
-            value={startLine}
-            onChange={(event) => setStartLine(event.target.value)}
-            inputMode="numeric"
-            placeholder="시작 라인"
-            className="min-w-0 bg-card border border-border rounded px-2 py-1.5 text-xs text-foreground placeholder:text-muted-foreground outline-none focus:border-[#f36910] focus:ring-2 focus:ring-[#f36910]/15"
-          />
-          <input
-            value={endLine}
-            onChange={(event) => setEndLine(event.target.value)}
-            inputMode="numeric"
-            placeholder="종료 라인"
-            className="min-w-0 bg-card border border-border rounded px-2 py-1.5 text-xs text-foreground placeholder:text-muted-foreground outline-none focus:border-[#f36910] focus:ring-2 focus:ring-[#f36910]/15"
-          />
-          <button
-            type="button"
-            onClick={apply}
-            disabled={!url.trim()}
-            className="px-3 py-1.5 rounded bg-[#f36910] text-white text-xs hover:bg-[#d85a0d] disabled:bg-[#777777] disabled:cursor-not-allowed"
-          >
-            적용
-          </button>
-        </div>
-
-        <div className="border border-border rounded overflow-hidden bg-[#3f3f3f]">
-          <div className="px-2 py-1.5 border-b border-border bg-card text-[11px] text-foreground flex items-center justify-between gap-2">
-            <span>코드 라인 선택</span>
-            <span>라인을 클릭하면 시작/종료 범위가 지정됩니다</span>
-          </div>
-          {scriptSource ? (
-            <div className="max-h-80 overflow-auto font-mono text-[11px]">
-              {scriptSource.split("\n").slice(0, 1200).map((line, index) => {
-                const lineNumber = index + 1;
-                const selected =
-                  lineNumber >= Number(startLine) && lineNumber <= Number(endLine);
-
-                return (
-                  <button
-                    key={lineNumber}
-                    type="button"
-                    onClick={() => selectLine(lineNumber)}
-                    className={`w-full grid grid-cols-[56px_1fr] text-left ${
-                      selected ? "bg-[#f36910]" : "bg-transparent hover:bg-card"
-                    }`}
-                  >
-                    <span className="px-2 py-0.5 text-right text-muted-foreground select-none border-r border-border">
-                      {lineNumber}
-                    </span>
-                    <span className="px-2 py-0.5 text-foreground whitespace-pre overflow-visible">
-                      {line || " "}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="p-4 text-xs text-muted-foreground text-center">
-              {sourceStatus || "스크립트를 선택하면 코드가 여기에 표시됩니다."}
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div className="flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
-        <span>{scripts.length} scripts detected</span>
-        {status && <span className="text-right break-words text-[#f36910]">{status}</span>}
-      </div>
-    </div>
-  );
-}
-
 export function AnalysisPanel({
   trace,
-  debuggerScripts,
-  logpointStatus,
   networkResourceFilter,
   onNetworkResourceFilterChange,
-  onApplyLogpoints,
-  onLoadScriptSource,
 }: AnalysisPanelProps) {
   const [expandedStoryId, setExpandedStoryId] = useState<string | null>(null);
   const [graphOpen, setGraphOpen] = useState(false);
@@ -3636,16 +3364,6 @@ export function AnalysisPanel({
   const visibleApiCount = trace.apiCalls.filter((apiCall) =>
     shouldShowApiCall(apiCall, networkResourceFilter)
   ).length;
-  const traceApiCaller = (apiCall: TraceApiCall) => {
-    const caller = getCallerFrame(apiCall);
-    if (!caller?.sourceFile || !caller.line) return;
-
-    onApplyLogpoints({
-      url: caller.sourceFile,
-      startLine: Math.max(1, caller.line - 1),
-      endLine: caller.line,
-    });
-  };
   const updateAiAnalysis = (errorId: string, nextState: AiAnalysisState) => {
     setAiAnalysisByErrorId((current) => ({
       ...current,
@@ -3724,7 +3442,6 @@ export function AnalysisPanel({
           trace={trace}
           networkResourceFilter={networkResourceFilter}
           networkSearchQuery={networkSearchQuery}
-          visibleApiCount={visibleApiCount}
           aiAnalysisByErrorId={aiAnalysisByErrorId}
           onNetworkResourceFilterChange={onNetworkResourceFilterChange}
           onNetworkSearchChange={setNetworkSearchQuery}
@@ -3760,7 +3477,6 @@ export function AnalysisPanel({
                       onToggle={() =>
                         setExpandedStoryId(expandedStoryId === item.id ? null : item.id)
                       }
-                      onTraceApiCaller={traceApiCaller}
                       onInspectError={openErrorInAnalysis}
                     />
                   ))}

@@ -11,11 +11,6 @@ import type {
   BrowserUserActionEvent,
 } from "./components/browser-view";
 import { AnalysisPanel } from "./components/analysis-panel";
-import type {
-  DebuggerScript,
-  DebuggerScriptSource,
-  LogpointFormValue,
-} from "./components/analysis-panel";
 import {
   ResizableHandle,
   ResizablePanel,
@@ -33,7 +28,7 @@ import {
   type TraceTimelineEvent,
 } from "./lib/trace-data";
 
-const DEFAULT_TARGET_URL = "https://ims.hwgeneralins.com/general/jsp/smartScanner.jsp";
+const DEFAULT_TARGET_URL = "https://www.naver.com";
 const MAX_TIMELINE_EVENTS = 600;
 const MAX_API_CALLS = 400;
 const MAX_FUNCTION_EVENTS = 400;
@@ -52,8 +47,6 @@ function appendBounded<T>(items: T[], item: T, limit: number) {
 export default function App() {
   const [url, setUrl] = useState(getDefaultTargetUrl);
   const [trace, setTrace] = useState<TraceSession>(emptyTraceSession);
-  const [debuggerScripts, setDebuggerScripts] = useState<DebuggerScript[]>([]);
-  const [logpointStatus, setLogpointStatus] = useState<string>("");
   const [themeMode, setThemeMode] = useState<"light" | "dark">(() => {
     if (typeof window === "undefined") return "light";
     return window.localStorage.getItem("debug-agent-theme") === "dark" ? "dark" : "light";
@@ -423,42 +416,6 @@ export default function App() {
     [appendTimelineEvent]
   );
 
-  const handleApplyLogpoints = useCallback(async (options: LogpointFormValue) => {
-    const runtime = (window as any).debugAgentRuntime;
-    if (!runtime?.setLogpoints) {
-      setLogpointStatus("Electron Debugger 연결이 필요합니다.");
-      return;
-    }
-
-    setLogpointStatus("Logpoint 적용 중...");
-
-    try {
-      const result = await runtime.setLogpoints(options);
-      setLogpointStatus(
-        result?.message ||
-          (result?.ok ? `${result.count}개 logpoint 적용됨` : "Logpoint 적용 실패")
-      );
-    } catch (error) {
-      setLogpointStatus(error instanceof Error ? error.message : "Logpoint 적용 실패");
-    }
-  }, []);
-
-  const handleLoadScriptSource = useCallback(
-    async (scriptId: string): Promise<DebuggerScriptSource> => {
-      const runtime = (window as any).debugAgentRuntime;
-      if (!runtime?.getScriptSource) {
-        return {
-          ok: false,
-          source: "",
-          message: "Electron Debugger 연결이 필요합니다.",
-        };
-      }
-
-      return runtime.getScriptSource({ scriptId });
-    },
-    []
-  );
-
   useEffect(() => {
     const runtime = (window as any).debugAgentRuntime;
     if (!runtime?.onNetworkEvent) return;
@@ -476,23 +433,6 @@ export default function App() {
       handleFunctionEvent(event);
     });
   }, [handleFunctionEvent]);
-
-  useEffect(() => {
-    const runtime = (window as any).debugAgentRuntime;
-    if (!runtime?.onDebuggerScript) return;
-
-    return runtime.onDebuggerScript((script: DebuggerScript) => {
-      if (!script.url) return;
-
-      setDebuggerScripts((currentScripts) => {
-        if (currentScripts.some((currentScript) => currentScript.scriptId === script.scriptId)) {
-          return currentScripts;
-        }
-
-        return [...currentScripts, script].slice(-300);
-      });
-    });
-  }, []);
 
   return (
     <div className="h-screen flex flex-col bg-background text-foreground">
@@ -594,12 +534,8 @@ export default function App() {
             <ResizablePanel defaultSize={38} minSize={28}>
               <AnalysisPanel
                 trace={trace}
-                debuggerScripts={debuggerScripts}
-                logpointStatus={logpointStatus}
                 networkResourceFilter={networkResourceFilter}
                 onNetworkResourceFilterChange={setNetworkResourceFilter}
-                onApplyLogpoints={handleApplyLogpoints}
-                onLoadScriptSource={handleLoadScriptSource}
               />
             </ResizablePanel>
           </ResizablePanelGroup>

@@ -406,7 +406,7 @@ export function BrowserView({
           value={draftUrl}
           onChange={(event) => setDraftUrl(event.target.value)}
           className="flex-1 rounded border border-border bg-card px-3 py-1.5 text-xs text-foreground shadow-sm focus:border-[var(--color-electric-blue)] focus:outline-none focus:ring-2 focus:ring-[var(--color-electric-blue)]/15 dark:border-border dark:bg-card dark:text-foreground"
-          placeholder="https://ims.hwgeneralins.com/general/jsp/smartScanner.jsp"
+          placeholder="https://www.naver.com"
         />
         <button
           type="submit"

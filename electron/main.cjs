@@ -162,7 +162,7 @@ function createAnalysisPrompt(payload = {}) {
     JSON.stringify({
       summary: "한 문장 결론",
       rootCause: "가장 가능성 높은 원인",
-      evidence: ["근거 1", "근거 2"],
+      evidence: ["확인된 단서", "관련 trace"],
       inspectFirst: "먼저 확인할 위치",
       debugSteps: ["핵심 확인 1"],
       fixSuggestion: "짧은 수정 방향",
@@ -324,6 +324,25 @@ async function analyzeErrorWithConfiguredProvider(payload = {}) {
   return analyzeErrorWithOpenAI(payload);
 }
 
+function sendToMainWindow(mainWindow, channel, payload) {
+  try {
+    if (!mainWindow || mainWindow.isDestroyed()) return false;
+
+    const targetWebContents = mainWindow.webContents;
+    if (!targetWebContents || targetWebContents.isDestroyed()) return false;
+
+    targetWebContents.send(channel, payload);
+    return true;
+  } catch (error) {
+    if (String(error?.message || error).includes("destroyed")) {
+      return false;
+    }
+
+    console.error(`[main-window:${channel}]`, error);
+    return false;
+  }
+}
+
 function setupTargetNetworkCapture(mainWindow) {
   const targetSession = session.fromPartition("persist:debug-agent-target");
   const requests = new Map();
@@ -344,7 +363,7 @@ function setupTargetNetworkCapture(mainWindow) {
     const request = requests.get(details.id) || {};
     requests.delete(details.id);
 
-    mainWindow.webContents.send("debug-agent:network-event", {
+    sendToMainWindow(mainWindow, "debug-agent:network-event", {
       transport: "webRequest",
       method: details.method || request.method || "GET",
       url: details.url,
@@ -370,7 +389,7 @@ function setupTargetNetworkCapture(mainWindow) {
     const request = requests.get(details.id) || {};
     requests.delete(details.id);
 
-    mainWindow.webContents.send("debug-agent:network-event", {
+    sendToMainWindow(mainWindow, "debug-agent:network-event", {
       transport: "webRequest",
       method: details.method || request.method || "GET",
       url: details.url,
@@ -488,7 +507,7 @@ async function handleDebuggerPaused(mainWindow, targetId, params) {
   const localVariables = await getScopeVariables(target.debuggerApi, localScope);
   const closureVariables = await getScopeVariables(target.debuggerApi, closureScope);
 
-  mainWindow.webContents.send("debug-agent:function-event", {
+  sendToMainWindow(mainWindow, "debug-agent:function-event", {
     callType: "devtools-paused",
     pauseReason: params.reason,
     functionName: topFrame.functionName || "(anonymous)",
@@ -560,7 +579,7 @@ async function attachTargetDebugger(mainWindow, targetId) {
       if (method === "Debugger.scriptParsed") {
         target.scripts.set(params.scriptId, params.url || params.sourceMapURL || "");
         if (params.url) {
-          mainWindow.webContents.send("debug-agent:debugger-script", {
+          sendToMainWindow(mainWindow, "debug-agent:debugger-script", {
             scriptId: params.scriptId,
             url: params.url,
             sourceMapURL: params.sourceMapURL,
@@ -795,7 +814,5 @@ app.whenReady().then(() => {
 });
 
 app.on("window-all-closed", () => {
-  if (process.platform !== "darwin") {
-    app.quit();
-  }
+  app.quit();
 });

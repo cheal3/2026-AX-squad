@@ -236,8 +236,8 @@
 
 .ai-robot-result-move {
   position: absolute;
-  left: 1rem;
-  top: 1rem;
+  left: 1.125rem;
+  top: 1.125rem;
   z-index: 2;
   animation: ai-robot-result-move 760ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
@@ -255,7 +255,7 @@
 @keyframes ai-robot-result-move {
   from {
     opacity: 1;
-    transform: translateY(8px) scale(1.28);
+    transform: translateY(6px) scale(1.08);
     transform-origin: center;
   }
 
@@ -263,6 +263,23 @@
     opacity: 1;
     transform: translateY(0) scale(1);
     transform-origin: center;
+  }
+}
+
+.ai-robot-eye-blink {
+  animation: ai-robot-eye-blink 1.45s ease-in-out infinite;
+  transform-origin: center;
+}
+
+@keyframes ai-robot-eye-blink {
+  0%,
+  84%,
+  100% {
+    transform: scaleY(1);
+  }
+
+  90% {
+    transform: scaleY(0.16);
   }
 }
 
